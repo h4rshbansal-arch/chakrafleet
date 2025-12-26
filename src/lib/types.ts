@@ -14,8 +14,8 @@ export interface User {
 }
 
 export type VehicleStatus = 'available' | 'in-use' | 'maintenance';
-export type VehicleType = 'Truck' | 'Van' | 'Motorcycle';
-
+// VehicleType is now a string to support dynamic types.
+export type VehicleType = string;
 
 export interface Vehicle {
   id: string;
@@ -24,6 +24,11 @@ export interface Vehicle {
   capacity: string;
   status: VehicleStatus;
   location: string;
+}
+
+export interface VehicleTypeDefinition {
+  id: string;
+  name: string;
 }
 
 export type JobStatus = 'Pending' | 'Approved' | 'In Progress' | 'Completed' | 'Rejected';

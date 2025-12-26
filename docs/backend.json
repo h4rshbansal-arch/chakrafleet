@@ -222,6 +222,23 @@
         "reason",
         "confidenceScore"
       ]
+    },
+    "VehicleType": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "VehicleType",
+      "type": "object",
+      "description": "Represents a type of vehicle.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the vehicle type (e.g., 'truck')."
+        },
+        "name": {
+          "type": "string",
+          "description": "Display name for the vehicle type (e.g., 'Truck')."
+        }
+      },
+      "required": ["id", "name"]
     }
   },
   "auth": {
@@ -259,6 +276,22 @@
             {
               "name": "vehicleId",
               "description": "The unique identifier of the vehicle."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/vehicle_types/{vehicleTypeId}",
+        "definition": {
+          "entityName": "VehicleType",
+          "schema": {
+            "$ref": "#/backend/entities/VehicleType"
+          },
+          "description": "Stores the different types of vehicles available.",
+          "params": [
+            {
+              "name": "vehicleTypeId",
+              "description": "The unique identifier of the vehicle type."
             }
           ]
         }
@@ -312,6 +345,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to support a role-based access control system (Admin, Supervisor, Driver) for the EZTransport application. The structure emphasizes authorization independence to ensure secure and scalable operations. User roles are stored directly in the `users` collection, which avoids the use of custom claims, and access control is managed through a combination of path-based ownership and denormalized membership maps where appropriate.\n\nTo achieve authorization independence and support the required QAPs, the following strategies are applied:\n\n*   **Authorization Independence (CRITICAL):**  Avoids hierarchical authorization dependencies (`get()`).  All authorization context is stored directly within documents or is derived from the document path. This ensures atomic operations and simplifies security rules.\n*   **Structural Segregation (Homogeneous Security Posture):**  Each collection is designed to hold documents with similar security requirements. For instance, user profiles are stored in `/users/{userId}`, where access control is based on the authenticated user's ID.\n*   **Access Modeling:**\n    *   **Private Data:** User-specific data is stored under the `/users/{userId}` path to enforce path-based ownership.\n    *   **Collaborative Data:** For collaborative resources (if applicable in future extensions), the membership map pattern (`members: {uid1: \"role\", uid2: \"role\"}`) will be used, with denormalization to eliminate `get()` calls in rules.\n\nThis structure will make the database and the security rules predictable and maintainable."
+    "reasoning": "The Firestore data structure is designed to support a role-based access control system (Admin, Supervisor, Driver) for the EZTransport application. The structure emphasizes authorization independence to ensure secure and scalable operations. User roles are stored directly in the `users` collection, which avoids the use of custom claims, and access control is managed through a combination of path-based ownership and denormalized membership maps where appropriate.\n\nThe `vehicle_types` collection is added to allow for dynamic management of vehicle categories within the application.\n\nTo achieve authorization independence and support the required QAPs, the following strategies are applied:\n\n*   **Authorization Independence (CRITICAL):**  Avoids hierarchical authorization dependencies (`get()`).  All authorization context is stored directly within documents or is derived from the document path. This ensures atomic operations and simplifies security rules.\n*   **Structural Segregation (Homogeneous Security Posture):**  Each collection is designed to hold documents with similar security requirements. For instance, user profiles are stored in `/users/{userId}`, where access control is based on the authenticated user's ID.\n*   **Access Modeling:**\n    *   **Private Data:** User-specific data is stored under the `/users/{userId}` path to enforce path-based ownership.\n    *   **Collaborative Data:** For collaborative resources (if applicable in future extensions), the membership map pattern (`members: {uid1: \"role\", uid2: \"role\"}`) will be used, with denormalization to eliminate `get()` calls in rules.\n\nThis structure will make the database and the security rules predictable and maintainable."
   }
 }

@@ -32,26 +32,33 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/hooks/use-language";
-import { Vehicle, VehicleStatus } from "@/lib/types";
-import { Truck, Car, Bike, PlusCircle, MoreHorizontal, Trash2 } from 'lucide-react';
-import { useCollection, useFirestore, useMemoFirebase, deleteDocumentNonBlocking } from "@/firebase";
+import { Vehicle, VehicleStatus, VehicleTypeDefinition } from "@/lib/types";
+import { Truck, Car, Bike, PlusCircle, MoreHorizontal, Trash2, Settings, CheckCircle, Clock, Wrench } from 'lucide-react';
+import { useCollection, useFirestore, useMemoFirebase, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
 import { VehicleCreationForm } from "./vehicle-creation-form";
 import { useToast } from "@/hooks/use-toast";
+import { ManageVehicleTypesDialog } from "./manage-vehicle-types-dialog";
 
 export function VehicleManagement() {
   const { t } = useLanguage();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAddVehicleDialogOpen, setIsAddVehicleDialogOpen] = useState(false);
+  const [isManageTypesDialogOpen, setIsManageTypesDialogOpen] = useState(false);
   
   const vehiclesQuery = useMemoFirebase(() => collection(firestore, 'vehicles'), [firestore]);
   const { data: vehicles, isLoading } = useCollection<Vehicle>(vehiclesQuery);
+  const { data: vehicleTypes } = useCollection<VehicleTypeDefinition>(useMemoFirebase(() => collection(firestore, 'vehicle_types'), [firestore]));
 
   const getStatusBadgeVariant = (status: VehicleStatus) => {
     switch (status) {
@@ -75,11 +82,21 @@ export function VehicleManagement() {
     });
   };
 
+  const handleStatusChange = (vehicleId: string, status: VehicleStatus) => {
+    const vehicleRef = doc(firestore, 'vehicles', vehicleId);
+    updateDocumentNonBlocking(vehicleRef, { status });
+    toast({
+      title: "Status Updated",
+      description: `Vehicle status changed to ${status}.`,
+    });
+  };
+
   const vehicleIcons: { [key: string]: React.ElementType } = {
     'Truck': Truck,
     'Van': Car,
-    'Motorcycle': Bike
-  }
+    'Motorcycle': Bike,
+    'default': Truck,
+  };
 
   if (isLoading) {
     return <div>Loading vehicles...</div>
@@ -87,8 +104,12 @@ export function VehicleManagement() {
 
   return (
     <>
-      <div className="flex justify-end mb-4">
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <div className="flex justify-end gap-2 mb-4">
+        <Button variant="outline" onClick={() => setIsManageTypesDialogOpen(true)}>
+            <Settings className="mr-2 h-4 w-4" />
+            Manage Types
+        </Button>
+        <Dialog open={isAddVehicleDialogOpen} onOpenChange={setIsAddVehicleDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <PlusCircle className="mr-2 h-4 w-4" />
@@ -99,7 +120,10 @@ export function VehicleManagement() {
             <DialogHeader>
               <DialogTitle>{t('vehicles.createNew')}</DialogTitle>
             </DialogHeader>
-            <VehicleCreationForm onVehicleCreated={() => setIsDialogOpen(false)} />
+            <VehicleCreationForm 
+              onVehicleCreated={() => setIsAddVehicleDialogOpen(false)} 
+              vehicleTypes={vehicleTypes || []}
+            />
           </DialogContent>
         </Dialog>
       </div>
@@ -116,13 +140,13 @@ export function VehicleManagement() {
         </TableHeader>
         <TableBody>
           {vehicles && vehicles.map((vehicle) => {
-            const Icon = vehicle.type ? vehicleIcons[vehicle.type] : null;
+            const Icon = vehicle.type ? (vehicleIcons[vehicle.type] || vehicleIcons['default']) : Truck;
             return (
               <TableRow key={vehicle.id}>
                 <TableCell className="font-medium">{vehicle.name}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
+                    <Icon className="h-4 w-4 text-muted-foreground" />
                     {vehicle.type}
                   </div>
                 </TableCell>
@@ -142,6 +166,21 @@ export function VehicleManagement() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>{t('jobs.actions')}</DropdownMenuLabel>
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger>Update Status</DropdownMenuSubTrigger>
+                           <DropdownMenuSubContent>
+                              <DropdownMenuItem onClick={() => handleStatusChange(vehicle.id, 'available')}>
+                                <CheckCircle className="mr-2 h-4 w-4" /> Available
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleStatusChange(vehicle.id, 'in-use')}>
+                                <Clock className="mr-2 h-4 w-4" /> In Use
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleStatusChange(vehicle.id, 'maintenance')}>
+                                <Wrench className="mr-2 h-4 w-4" /> Maintenance
+                              </DropdownMenuItem>
+                           </DropdownMenuSubContent>
+                        </DropdownMenuSub>
+                        <DropdownMenuSeparator />
                          <AlertDialogTrigger asChild>
                           <DropdownMenuItem className="text-destructive">
                             <Trash2 className="mr-2 h-4 w-4" />
@@ -174,6 +213,11 @@ export function VehicleManagement() {
           })}
         </TableBody>
       </Table>
+       <ManageVehicleTypesDialog 
+        isOpen={isManageTypesDialogOpen}
+        onOpenChange={setIsManageTypesDialogOpen}
+        vehicleTypes={vehicleTypes || []}
+      />
     </>
   );
 }

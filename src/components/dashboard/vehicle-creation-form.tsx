@@ -18,11 +18,11 @@ import { useLanguage } from "@/hooks/use-language";
 import { useToast } from "@/hooks/use-toast";
 import { useFirestore, addDocumentNonBlocking } from "@/firebase";
 import { collection } from "firebase/firestore";
-import { VehicleStatus, VehicleType } from "@/lib/types";
+import { VehicleStatus, VehicleTypeDefinition } from "@/lib/types";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name is required"),
-  type: z.enum(['Truck', 'Van', 'Motorcycle']),
+  type: z.string().min(1, "Type is required"),
   capacity: z.string().min(1, "Capacity is required"),
   location: z.string().min(2, "Location is required"),
   status: z.enum(['available', 'in-use', 'maintenance']),
@@ -30,9 +30,10 @@ const formSchema = z.object({
 
 interface VehicleCreationFormProps {
     onVehicleCreated: () => void;
+    vehicleTypes: VehicleTypeDefinition[];
 }
 
-export function VehicleCreationForm({ onVehicleCreated }: VehicleCreationFormProps) {
+export function VehicleCreationForm({ onVehicleCreated, vehicleTypes }: VehicleCreationFormProps) {
   const { t } = useLanguage();
   const { toast } = useToast();
   const firestore = useFirestore();
@@ -41,7 +42,7 @@ export function VehicleCreationForm({ onVehicleCreated }: VehicleCreationFormPro
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      type: "Van",
+      type: vehicleTypes[0]?.name || "",
       capacity: "",
       location: "",
       status: "available",
@@ -90,9 +91,9 @@ export function VehicleCreationForm({ onVehicleCreated }: VehicleCreationFormPro
                         </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                        <SelectItem value="Truck">Truck</SelectItem>
-                        <SelectItem value="Van">Van</SelectItem>
-                        <SelectItem value="Motorcycle">Motorcycle</SelectItem>
+                        {vehicleTypes.map(type => (
+                           <SelectItem key={type.id} value={type.name}>{type.name}</SelectItem>
+                        ))}
                     </SelectContent>
                 </Select>
               <FormMessage />
