@@ -8,13 +8,18 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { UserRole } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { useFirestore, setDocumentNonBlocking } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 interface RegistrationFormProps {
   onRegistrationComplete?: () => void;
 }
 
 export function RegistrationForm({ onRegistrationComplete }: RegistrationFormProps) {
-  const { signup } = useAuth();
+  const { auth } = useAuth();
+  const firestore = useFirestore();
   const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,7 +31,18 @@ export function RegistrationForm({ onRegistrationComplete }: RegistrationFormPro
     e.preventDefault();
     setIsLoading(true);
     try {
-      await signup(email, password, name, role, { redirect: false });
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      const userRef = doc(firestore, "users", cred.user.uid);
+      const newUserProfile = {
+        id: cred.user.uid,
+        name: name,
+        email: email,
+        role: role,
+        avatarUrl: PlaceHolderImages.find(p => p.imageHint.includes('person'))?.imageUrl || '',
+      };
+      
+      setDocumentNonBlocking(userRef, newUserProfile, { merge: true });
+
       toast({
         title: "User Created",
         description: `Account for ${name} has been created successfully.`,

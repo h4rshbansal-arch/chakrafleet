@@ -27,6 +27,7 @@ interface SignupOptions {
 interface AuthContextType {
   user: UserProfile | null;
   firebaseUser: FirebaseUser | null;
+  auth: any;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string, role: UserRole, options?: SignupOptions) => Promise<void>;
   logout: () => void;
@@ -132,7 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAuthenticated = !!userProfile && !!firebaseUser;
 
   return (
-    <AuthContext.Provider value={{ user: userProfile, firebaseUser, login, signup, logout, isAuthenticated, isUserLoading }}>
+    <AuthContext.Provider value={{ user: userProfile, firebaseUser, login, signup, logout, isAuthenticated, isUserLoading, auth }}>
       {children}
     </AuthContext.Provider>
   );
