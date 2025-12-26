@@ -1,7 +1,11 @@
+"use client";
+
 import { AnalyticsCards } from "@/components/dashboard/analytics-cards";
 import { JobCreationForm } from "@/components/dashboard/job-creation-form";
 import { JobList } from "@/components/dashboard/job-list";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FilePlus, List } from "lucide-react";
 
 export default function SupervisorDashboard() {
   return (
@@ -10,8 +14,10 @@ export default function SupervisorDashboard() {
         <AnalyticsCards />
         <Card>
           <CardHeader>
-            <CardTitle>My Job Requests</CardTitle>
-            <CardDescription>A list of jobs you have created.</CardDescription>
+            <CardTitle>Job Board</CardTitle>
+            <CardDescription>
+              A list of your jobs and unclaimed jobs from admins.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <JobList />
@@ -19,7 +25,15 @@ export default function SupervisorDashboard() {
         </Card>
       </div>
       <div className="lg:col-span-1">
-        <JobCreationForm />
+        <Card>
+          <CardHeader>
+            <CardTitle>Create a Job</CardTitle>
+            <CardDescription>Request a new transport job.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <JobCreationForm />
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

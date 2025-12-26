@@ -47,6 +47,7 @@
     "view": "View",
     "updateStatus": "Update Status",
     "getAiSuggestion": "Get AI Suggestion",
+    "claim": "Claim Job",
     "aiSuggestionTitle": "AI-Powered Job Assignment",
     "aiSuggestionDescription": "Our AI has analyzed the job requirements and suggests the following assignments.",
     "driverSuggestion": "Driver Suggestion",
@@ -93,6 +94,7 @@
     "jobApproved": "Job approved!",
     "jobRejected": "Job rejected!",
     "jobAssigned": "Job assigned successfully!",
+    "jobClaimed": "Job claimed successfully!",
     "statusUpdated": "Job status updated!",
     "vehicleCreated": "Vehicle created successfully!"
   }

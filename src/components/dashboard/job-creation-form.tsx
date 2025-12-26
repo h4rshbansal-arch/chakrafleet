@@ -56,10 +56,15 @@ export function JobCreationForm() {
 
     const jobsCollection = collection(firestore, "jobs");
     
+    // Determine the status based on the user's role
+    const status = user.role === 'Admin' ? 'Unclaimed' : 'Pending';
+
     addDocumentNonBlocking(jobsCollection, {
       ...values,
-      requestingSupervisorId: user.id,
-      status: 'Pending',
+      creatorId: user.id,
+      creatorRole: user.role,
+      supervisorId: user.role === 'Supervisor' ? user.id : null,
+      status: status,
       requestDate: serverTimestamp(),
     })
 

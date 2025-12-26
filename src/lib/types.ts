@@ -31,10 +31,10 @@ export interface VehicleTypeDefinition {
   name: string;
 }
 
-export type JobStatus = 'Pending' | 'Approved' | 'In Progress' | 'Completed' | 'Rejected';
+export type JobStatus = 'Pending' | 'Approved' | 'In Progress' | 'Completed' | 'Rejected' | 'Unclaimed';
 
 export interface Job {
-  id: string;
+  id:string;
   title: string;
   description: string;
   origin: string;
@@ -44,7 +44,9 @@ export interface Job {
   status: JobStatus;
   driverId?: string;
   vehicleId?: string;
-  supervisorId: string;
+  supervisorId?: string;
+  creatorId: string; // ID of the user who created the job (Admin or Supervisor)
+  creatorRole: UserRole; // Role of the creator
   requestDate?: Timestamp;
   pickupTime?: Timestamp;
 }
