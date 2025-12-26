@@ -10,7 +10,7 @@
  * /users/{userId} document, which is a standard and acceptable pattern for RBAC.
  *
  * Key Security Decisions:
- * - User Privacy: Users can only access their own profile document in the `/users` collection. Listing all users is strictly forbidden to protect user privacy.
+ * - User Privacy: Users can only access their own profile document in the `/users` collection. Listing all users is strictly forbidden to protect user privacy, except for Admins who need it for management purposes.
  * - Role-Based Permissions: Admins have wide-ranging read/write access. Supervisors have permissions focused on job management. Drivers have limited read access, typically restricted to jobs they are assigned to.
  * - System-Generated Data: Collections like `activity_logs` and `ai_suggestions` are treated as immutable and cannot be created or modified by any client-side user. This ensures data integrity, as these records should only be created by a trusted backend process using the Admin SDK.
  * - Default Posture: The default security posture is to deny access. Permissions are granted explicitly and on a need-to-know basis according to the user's role.
@@ -84,15 +84,15 @@ service cloud.firestore {
 
 
     /**
-     * @description A user can create their own profile. Once created, only that user can read or modify it. Listing users is disallowed for privacy.
+     * @description A user can create their own profile. Once created, only that user can read or modify it. Admins can list all users for management.
      * @path /users/{userId}
      * @allow (create) An authenticated user with UID 'user123' creates their own profile at `/users/user123`.
      * @deny (get) User 'user456' attempts to read the profile at `/users/user123`.
      * @principle Restricts access to a user's own data tree (Self-Creation & Ownership).
      */
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false;
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
       allow create: if isOwner(userId) && request.resource.data.id == userId;
       allow update: if isOwner(userId) && isExistingDoc() && request.resource.data.id == resource.data.id;
       allow delete: if isOwner(userId) && isExistingDoc();
