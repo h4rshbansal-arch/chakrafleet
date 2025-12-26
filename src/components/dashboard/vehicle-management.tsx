@@ -10,13 +10,18 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/hooks/use-language";
-import { vehicles } from "@/lib/data";
-import { VehicleStatus } from "@/lib/types";
+import { Vehicle, VehicleStatus } from "@/lib/types";
 import { Truck, Car, Motorcycle } from 'lucide-react';
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { collection } from "firebase/firestore";
 
 export function VehicleManagement() {
   const { t } = useLanguage();
+  const firestore = useFirestore();
   
+  const vehiclesQuery = useMemoFirebase(() => collection(firestore, 'vehicles'), [firestore]);
+  const { data: vehicles, isLoading } = useCollection<Vehicle>(vehiclesQuery);
+
   const getStatusBadgeVariant = (status: VehicleStatus) => {
     switch (status) {
       case "available":
@@ -36,6 +41,10 @@ export function VehicleManagement() {
     'Motorcycle': Motorcycle
   }
 
+  if (isLoading) {
+    return <div>Loading vehicles...</div>
+  }
+
   return (
     <Table>
       <TableHeader>
@@ -48,14 +57,14 @@ export function VehicleManagement() {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {vehicles.map((vehicle) => {
+        {vehicles && vehicles.map((vehicle) => {
           const Icon = vehicleIcons[vehicle.type];
           return (
             <TableRow key={vehicle.id}>
               <TableCell className="font-medium">{vehicle.name}</TableCell>
               <TableCell>
                 <div className="flex items-center gap-2">
-                  <Icon className="h-4 w-4 text-muted-foreground" />
+                  {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
                   {vehicle.type}
                 </div>
               </TableCell>

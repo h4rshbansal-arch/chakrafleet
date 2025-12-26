@@ -17,6 +17,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useLanguage } from "@/hooks/use-language";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/auth-context";
+import { useFirestore, addDocumentNonBlocking } from "@/firebase";
+import { collection, serverTimestamp } from "firebase/firestore";
 
 const formSchema = z.object({
   title: z.string().min(2, { message: "Title must be at least 2 characters." }),
@@ -29,6 +32,8 @@ const formSchema = z.object({
 export function JobCreationForm() {
   const { t } = useLanguage();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const firestore = useFirestore();
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -41,8 +46,21 @@ export function JobCreationForm() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log("New job created:", values);
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!user) {
+      toast({ title: "Error", description: "You must be logged in to create a job.", variant: "destructive"});
+      return;
+    }
+
+    const jobsCollection = collection(firestore, "jobs");
+    
+    addDocumentNonBlocking(jobsCollection, {
+      ...values,
+      supervisorId: user.id,
+      status: 'Pending',
+      requestDate: serverTimestamp(),
+    })
+
     toast({
         title: t('notifications.jobCreated'),
         description: values.title,

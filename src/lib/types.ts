@@ -1,3 +1,5 @@
+import { type Timestamp } from 'firebase/firestore';
+
 export type UserRole = 'Admin' | 'Supervisor' | 'Driver';
 
 export interface User {
@@ -30,17 +32,19 @@ export interface Job {
   description: string;
   origin: string;
   destination: string;
-  date: string;
+  date: string; // Consider using Timestamp for Firestore
   status: JobStatus;
   driverId?: string;
   vehicleId?: string;
   supervisorId: string;
+  requestDate?: Timestamp;
+  pickupTime?: Timestamp;
 }
 
 export interface ActivityLog {
   id: string;
-  timestamp: string;
-  user: string;
-  action: string;
-  details: string;
+  timestamp: Timestamp;
+  userId: string;
+  activityType: string;
+  description: string;
 }

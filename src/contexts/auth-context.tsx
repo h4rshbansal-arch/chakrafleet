@@ -1,51 +1,95 @@
 "use client";
 
-import React, { createContext, useState, useContext, ReactNode, useEffect } from "react";
+import React, { createContext, useContext, ReactNode, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { User, UserRole } from "@/lib/types";
-import { users } from "@/lib/data";
+import { UserRole } from "@/lib/types";
+import { useFirebase } from "@/firebase";
+import { signInAnonymously, User as FirebaseUser } from "firebase/auth";
+import { doc, setDoc, getDoc, Firestore } from "firebase/firestore";
+import { users as mockUsers } from "@/lib/data";
+
+interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  avatarUrl: string;
+}
 
 interface AuthContextType {
-  user: User | null;
+  user: UserProfile | null;
+  firebaseUser: FirebaseUser | null;
   login: (role: UserRole) => void;
   logout: () => void;
   isAuthenticated: boolean;
+  isUserLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Function to create a user profile in Firestore if it doesn't exist
+const createUserProfile = async (firestore: Firestore, firebaseUser: FirebaseUser, role: UserRole) => {
+  const userRef = doc(firestore, "users", firebaseUser.uid);
+  const userSnap = await getDoc(userRef);
+  if (!userSnap.exists()) {
+    const mockUser = mockUsers.find(u => u.role === role);
+    const newUserProfile: Omit<UserProfile, 'id'> = {
+      name: mockUser?.name || 'Anonymous User',
+      email: mockUser?.email || `anonymous@${firebaseUser.uid.substring(0,5)}.com`,
+      role: role,
+      avatarUrl: mockUser?.avatarUrl || '',
+    };
+    await setDoc(userRef, newUserProfile);
+  }
+};
+
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const { auth, firestore, user: firebaseUser, isUserLoading } = useFirebase();
+  const [user, setUser] = React.useState<UserProfile | null>(null);
   const router = useRouter();
 
   useEffect(() => {
-    // This is a mock session check. In a real app, you'd verify a token.
-    const storedUserRole = typeof window !== "undefined" ? sessionStorage.getItem("userRole") as UserRole : null;
-    if (storedUserRole) {
-      const loggedInUser = users.find(u => u.role === storedUserRole);
-      setUser(loggedInUser || null);
+    if (isUserLoading) return;
+    if (!firebaseUser) {
+      setUser(null);
+      return;
     }
-  }, []);
 
-  const login = (role: UserRole) => {
-    const userToLogin = users.find(u => u.role === role);
-    if (userToLogin) {
-      setUser(userToLogin);
-      sessionStorage.setItem("userRole", userToLogin.role);
+    const userRef = doc(firestore, "users", firebaseUser.uid);
+    const sub = userRef.onSnapshot((doc) => {
+      if (doc.exists()) {
+        setUser({ id: doc.id, ...doc.data() } as UserProfile);
+      } else {
+        // Could be a new anonymous user, wait for profile creation
+        setUser(null);
+      }
+    });
+
+    return () => sub();
+
+  }, [firebaseUser, isUserLoading, firestore]);
+
+  const login = async (role: UserRole) => {
+    try {
+      const cred = await signInAnonymously(auth);
+      await createUserProfile(firestore, cred.user, role);
+      // The useEffect will handle setting the user profile and navigation
       router.push("/dashboard");
+    } catch (error) {
+      console.error("Anonymous sign-in failed", error);
     }
   };
 
   const logout = () => {
-    setUser(null);
-    sessionStorage.removeItem("userRole");
+    auth.signOut();
     router.push("/login");
   };
 
-  const isAuthenticated = !!user;
+  const isAuthenticated = !!user && !!firebaseUser;
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated }}>
+    <AuthContext.Provider value={{ user, firebaseUser, login, logout, isAuthenticated, isUserLoading }}>
       {children}
     </AuthContext.Provider>
   );

@@ -22,21 +22,38 @@ import { Badge } from "@/components/ui/badge";
 import { MoreHorizontal } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useLanguage } from "@/hooks/use-language";
-import { jobs as initialJobs, users, vehicles } from "@/lib/data";
 import { Job, JobStatus } from "@/lib/types";
 import { AiSuggestionTool } from "./ai-suggestion-tool";
 import { useToast } from "@/hooks/use-toast";
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { collection, query, where, doc, updateDoc } from "firebase/firestore";
+import { vehicles as allVehicles, users as allUsers } from "@/lib/data"; // for now
 
 export function JobList() {
   const { user } = useAuth();
   const { t } = useLanguage();
   const { toast } = useToast();
-  const [jobs, setJobs] = useState<Job[]>(initialJobs);
+  const firestore = useFirestore();
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
 
-  const handleStatusChange = (jobId: string, status: JobStatus) => {
-    setJobs(jobs.map(job => job.id === jobId ? { ...job, status } : job));
+  const jobsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    let q = collection(firestore, 'jobs');
+    if (user.role === 'Supervisor') {
+      return query(q, where('supervisorId', '==', user.id));
+    }
+    if (user.role === 'Driver') {
+      return query(q, where('driverId', '==', user.id));
+    }
+    return q;
+  }, [firestore, user]);
+
+  const { data: jobs, isLoading } = useCollection<Job>(jobsQuery);
+
+  const handleStatusChange = async (jobId: string, status: JobStatus) => {
+    const jobRef = doc(firestore, 'jobs', jobId);
+    await updateDoc(jobRef, { status });
     if (status === 'Approved') toast({ title: t('notifications.jobApproved'), description: `Job #${jobId}` });
     if (status === 'Rejected') toast({ title: t('notifications.jobRejected'), variant: 'destructive', description: `Job #${jobId}` });
   };
@@ -46,8 +63,9 @@ export function JobList() {
     setIsAiModalOpen(true);
   };
   
-  const handleAssign = (jobId: string, driverId: string, vehicleId: string) => {
-    setJobs(jobs.map(job => job.id === jobId ? { ...job, driverId, vehicleId, status: 'Approved' } : job));
+  const handleAssign = async (jobId: string, driverId: string, vehicleId: string) => {
+    const jobRef = doc(firestore, 'jobs', jobId);
+    await updateDoc(jobRef, { driverId, vehicleId, status: 'Approved' });
     toast({ title: t('notifications.jobAssigned'), description: `Driver and vehicle assigned to Job #${jobId}` });
   };
 
@@ -68,11 +86,9 @@ export function JobList() {
     }
   };
 
-  const filteredJobs = user?.role === 'Supervisor' 
-    ? jobs.filter(job => job.supervisorId === user.id)
-    : user?.role === 'Driver' 
-    ? jobs.filter(job => job.driverId === user.id)
-    : jobs;
+  if (isLoading) {
+    return <div>Loading jobs...</div>
+  }
 
   return (
     <>
@@ -90,7 +106,7 @@ export function JobList() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filteredJobs.map((job) => (
+          {jobs && jobs.map((job) => (
             <TableRow key={job.id}>
               <TableCell className="font-medium">{job.title}</TableCell>
               <TableCell>{job.origin}</TableCell>
@@ -134,8 +150,8 @@ export function JobList() {
             isOpen={isAiModalOpen}
             onOpenChange={setIsAiModalOpen}
             onAssign={handleAssign}
-            availableDrivers={users.filter(u => u.role === 'Driver')}
-            availableVehicles={vehicles}
+            availableDrivers={allUsers.filter(u => u.role === 'Driver')}
+            availableVehicles={allVehicles}
          />
       )}
     </>
