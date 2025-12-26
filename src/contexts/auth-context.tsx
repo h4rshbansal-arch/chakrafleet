@@ -130,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const isUserLoading = isFirebaseUserLoading || isProfileLoading;
-  const isAuthenticated = !!userProfile && !!firebaseUser;
+  const isAuthenticated = !isUserLoading && !!firebaseUser && !!userProfile;
 
   return (
     <AuthContext.Provider value={{ user: userProfile, firebaseUser, login, signup, logout, isAuthenticated, isUserLoading, auth }}>

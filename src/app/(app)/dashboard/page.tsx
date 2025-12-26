@@ -1,4 +1,3 @@
-// src/app/(app)/dashboard/page.tsx
 'use client';
 
 import { useEffect } from 'react';
@@ -6,11 +5,15 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 
 export default function DashboardRedirectPage() {
-  const { user } = useAuth();
+  const { user, isUserLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (user) {
+    if (isUserLoading) {
+      return; // Wait until user data is loaded
+    }
+
+    if (user?.role) {
       switch (user.role) {
         case 'Admin':
           router.replace('/admin/dashboard');
@@ -22,12 +25,15 @@ export default function DashboardRedirectPage() {
           router.replace('/driver/dashboard');
           break;
         default:
-          // Fallback or handle unexpected role
+          // Fallback for unexpected roles or if role is not defined
           router.replace('/login');
           break;
       }
+    } else if (!isUserLoading) {
+      // If user data is loaded and there's no role, redirect to login
+      router.replace('/login');
     }
-  }, [user, router]);
+  }, [user, isUserLoading, router]);
 
   return (
     <div className="flex h-screen w-full items-center justify-center bg-background">
