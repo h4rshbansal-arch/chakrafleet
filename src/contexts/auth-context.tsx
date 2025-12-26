@@ -9,7 +9,7 @@ import {
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword
 } from "firebase/auth";
-import { doc, getDoc, Firestore, onSnapshot, collection, getDocs, query } from "firebase/firestore";
+import { doc, getDoc, Firestore, onSnapshot, collection, getDocs, query, setDoc } from "firebase/firestore";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 
 interface UserProfile {
@@ -49,7 +49,7 @@ const createUserProfile = async (firestore: Firestore, firebaseUser: FirebaseUse
       role: role,
       avatarUrl: PlaceHolderImages.find(p => p.imageHint.includes('person'))?.imageUrl || '',
     };
-    setDocumentNonBlocking(userRef, newUserProfile, { merge: true });
+    await setDoc(userRef, newUserProfile, { merge: true });
   }
 };
 
