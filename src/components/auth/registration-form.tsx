@@ -8,9 +8,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { UserRole } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { setDocumentNonBlocking, useFirestore } from '@/firebase';
-import { doc } from 'firebase/firestore';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 interface RegistrationFormProps {
   onRegistrationComplete?: () => void;
@@ -19,7 +16,7 @@ interface RegistrationFormProps {
 }
 
 export function RegistrationForm({ onRegistrationComplete, isAdminRegistration = false }: RegistrationFormProps) {
-  const { signup, user } = useAuth();
+  const { signup } = useAuth();
   const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
