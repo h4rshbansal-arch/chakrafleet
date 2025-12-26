@@ -27,6 +27,7 @@ const formSchema = z.object({
   origin: z.string().min(2, { message: "Origin is required." }),
   destination: z.string().min(2, { message: "Destination is required." }),
   date: z.string().min(1, { message: "Date is required." }),
+  time: z.string().min(1, { message: "Time is required." }),
 });
 
 export function JobCreationForm() {
@@ -43,6 +44,7 @@ export function JobCreationForm() {
       origin: "",
       destination: "",
       date: "",
+      time: "",
     },
   });
 
@@ -91,7 +93,7 @@ export function JobCreationForm() {
               )}
             />
             <FormField
-              control-={form.control}
+              control={form.control}
               name="description"
               render={({ field }) => (
                 <FormItem>
@@ -129,19 +131,34 @@ export function JobCreationForm() {
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="date"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('jobs.date')}</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('jobs.date')}</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="time"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('jobs.time')}</FormLabel>
+                    <FormControl>
+                      <Input type="time" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <Button type="submit" className="w-full bg-accent hover:bg-accent/90">
               {t('jobs.createJobButton')}
             </Button>

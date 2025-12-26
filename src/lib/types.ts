@@ -14,11 +14,13 @@ export interface User {
 }
 
 export type VehicleStatus = 'available' | 'in-use' | 'maintenance';
+export type VehicleType = 'Truck' | 'Van' | 'Motorcycle';
+
 
 export interface Vehicle {
   id: string;
   name: string;
-  type: 'Truck' | 'Van' | 'Motorcycle';
+  type: VehicleType;
   capacity: string;
   status: VehicleStatus;
   location: string;
@@ -33,6 +35,7 @@ export interface Job {
   origin: string;
   destination: string;
   date: string; // Consider using Timestamp for Firestore
+  time?: string;
   status: JobStatus;
   driverId?: string;
   vehicleId?: string;

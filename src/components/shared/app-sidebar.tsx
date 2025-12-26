@@ -22,18 +22,24 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/auth-context";
 import { useLanguage } from "@/hooks/use-language";
 import { Logo } from "@/components/icons/logo";
+import { useDashboard } from "@/contexts/dashboard-context";
 
 export function AppSidebar() {
   const { user } = useAuth();
   const { t } = useLanguage();
+  const { setActiveTab } = useDashboard();
+
+  const handleAdminNav = (tab: string) => {
+    setActiveTab(tab);
+  };
 
   const navItems = {
     Admin: [
-      { href: "/admin/dashboard", icon: Home, label: t('sidebar.dashboard') },
-      { href: "/admin/dashboard", icon: Package, label: t('sidebar.jobs') },
-      { href: "/admin/dashboard", icon: Users, label: t('sidebar.users') },
-      { href: "/admin/dashboard", icon: Truck, label: t('sidebar.vehicles') },
-      { href: "/admin/dashboard", icon: FileText, label: t('sidebar.logs') },
+      { href: "/admin/dashboard", icon: Home, label: t('sidebar.dashboard'), action: () => handleAdminNav('jobs') },
+      { href: "/admin/dashboard", icon: Package, label: t('sidebar.jobs'), action: () => handleAdminNav('jobs') },
+      { href: "/admin/dashboard", icon: Users, label: t('sidebar.users'), action: () => handleAdminNav('users') },
+      { href: "/admin/dashboard", icon: Truck, label: t('sidebar.vehicles'), action: () => handleAdminNav('vehicles') },
+      { href: "/admin/dashboard", icon: FileText, label: t('sidebar.logs'), action: () => handleAdminNav('logs') },
     ],
     Supervisor: [
       { href: "/supervisor/dashboard", icon: Home, label: t('sidebar.dashboard') },
@@ -49,22 +55,33 @@ export function AppSidebar() {
 
   const currentNavItems = user ? navItems[user.role] : [];
   
-  const NavLinks = ({ isTooltip = false }: { isTooltip?: boolean }) => (
+  const NavLinks = ({ isTooltip = false, inSheet = false }: { isTooltip?: boolean, inSheet?: boolean }) => (
     <TooltipProvider>
-      {currentNavItems.map((item, index) => (
-        <Tooltip key={index}>
-          <TooltipTrigger asChild>
-            <Link
-              href={item.href}
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
-            >
-              <item.icon className="h-5 w-5" />
-              <span className="sr-only">{item.label}</span>
-            </Link>
-          </TooltipTrigger>
-          {isTooltip && <TooltipContent side="right">{item.label}</TooltipContent>}
-        </Tooltip>
-      ))}
+      {currentNavItems.map((item, index) => {
+        const NavComponent = (
+          <Link
+            href={item.href}
+            onClick={item.action}
+            className={inSheet ? "flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground" : "flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"}
+          >
+            <item.icon className="h-5 w-5" />
+            {inSheet ? item.label : <span className="sr-only">{item.label}</span>}
+          </Link>
+        );
+
+        if (isTooltip) {
+          return (
+            <Tooltip key={index}>
+              <TooltipTrigger asChild>
+                {NavComponent}
+              </TooltipTrigger>
+              <TooltipContent side="right">{item.label}</TooltipContent>
+            </Tooltip>
+          );
+        }
+        
+        return <div key={index}>{NavComponent}</div>;
+      })}
     </TooltipProvider>
   );
 
@@ -99,16 +116,7 @@ export function AppSidebar() {
                 <Logo className="h-5 w-5 transition-all group-hover:scale-110" />
                 <span className="sr-only">EZTransport</span>
               </Link>
-              {currentNavItems.map((item, index) => (
-                <Link
-                  key={index}
-                  href={item.href}
-                  className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-                >
-                  <item.icon className="h-5 w-5" />
-                  {item.label}
-                </Link>
-              ))}
+              <NavLinks inSheet />
             </nav>
           </SheetContent>
         </Sheet>

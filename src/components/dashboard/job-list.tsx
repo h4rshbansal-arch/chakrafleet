@@ -27,6 +27,8 @@ import { AiSuggestionTool } from "./ai-suggestion-tool";
 import { useToast } from "@/hooks/use-toast";
 import { useCollection, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from "@/firebase";
 import { collection, query, where, doc } from "firebase/firestore";
+import { format } from "date-fns";
+
 
 export function JobList() {
   const { user } = useAuth();
@@ -93,6 +95,22 @@ export function JobList() {
     return <div>Loading jobs...</div>
   }
 
+  const formatJobDate = (dateString: string, timeString?: string) => {
+    try {
+      if (!timeString) {
+        return format(new Date(dateString), 'PP');
+      }
+      const [hours, minutes] = timeString.split(':');
+      const date = new Date(dateString);
+      date.setHours(parseInt(hours, 10));
+      date.setMinutes(parseInt(minutes, 10));
+      return format(date, 'PPpp');
+    } catch (error) {
+      return dateString;
+    }
+  };
+
+
   return (
     <>
       <Table>
@@ -114,7 +132,7 @@ export function JobList() {
               <TableCell className="font-medium">{job.title}</TableCell>
               <TableCell>{job.origin}</TableCell>
               <TableCell>{job.destination}</TableCell>
-              <TableCell>{job.date}</TableCell>
+              <TableCell>{formatJobDate(job.date, job.time)}</TableCell>
               <TableCell>
                 <Badge variant={getStatusBadgeVariant(job.status)}>{job.status}</Badge>
               </TableCell>
