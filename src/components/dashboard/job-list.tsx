@@ -22,12 +22,11 @@ import { Badge } from "@/components/ui/badge";
 import { MoreHorizontal } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useLanguage } from "@/hooks/use-language";
-import { Job, JobStatus } from "@/lib/types";
+import { Job, JobStatus, User, Vehicle } from "@/lib/types";
 import { AiSuggestionTool } from "./ai-suggestion-tool";
 import { useToast } from "@/hooks/use-toast";
 import { useCollection, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from "@/firebase";
 import { collection, query, where, doc } from "firebase/firestore";
-import { vehicles as allVehicles, users as allUsers } from "@/lib/data"; // for now
 
 export function JobList() {
   const { user } = useAuth();
@@ -37,16 +36,20 @@ export function JobList() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
 
+  const { data: allUsers } = useCollection<User>(useMemoFirebase(() => collection(firestore, 'users'), [firestore]));
+  const { data: allVehicles } = useCollection<Vehicle>(useMemoFirebase(() => collection(firestore, 'vehicles'), [firestore]));
+
+
   const jobsQuery = useMemoFirebase(() => {
     if (!user) return null;
-    let q = collection(firestore, 'jobs');
+    const q = collection(firestore, 'jobs');
     if (user.role === 'Supervisor') {
       return query(q, where('supervisorId', '==', user.id));
     }
     if (user.role === 'Driver') {
-      return query(q, where('driverId', '==', user.id));
+      return query(q, where('assignedDriverId', '==', user.id));
     }
-    return q;
+    return query(q);
   }, [firestore, user]);
 
   const { data: jobs, isLoading } = useCollection<Job>(jobsQuery);
@@ -65,7 +68,7 @@ export function JobList() {
   
   const handleAssign = (jobId: string, driverId: string, vehicleId: string) => {
     const jobRef = doc(firestore, 'jobs', jobId);
-    updateDocumentNonBlocking(jobRef, { driverId, vehicleId, status: 'Approved' });
+    updateDocumentNonBlocking(jobRef, { assignedDriverId: driverId, assignedVehicleId: vehicleId, status: 'Approved' });
     toast({ title: t('notifications.jobAssigned'), description: `Driver and vehicle assigned to Job #${jobId}` });
   };
 
@@ -144,7 +147,7 @@ export function JobList() {
           ))}
         </TableBody>
       </Table>
-      {selectedJob && (
+      {selectedJob && allUsers && allVehicles && (
          <AiSuggestionTool 
             job={selectedJob}
             isOpen={isAiModalOpen}
