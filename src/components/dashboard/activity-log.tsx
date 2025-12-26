@@ -25,7 +25,8 @@ export function ActivityLog() {
   const { data: users } = useCollection<User>(usersQuery);
 
   const getUserName = (userId: string) => {
-    return users?.find(u => u.id === userId)?.name || userId;
+    const user = users?.find(u => u.id === userId);
+    return user ? user.name : "Unknown User";
   }
   
   if (isLoading) {
