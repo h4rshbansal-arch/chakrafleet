@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestore, addDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
+import { useFirestore, setDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
 import { VehicleTypeDefinition } from "@/lib/types";
 import { Trash2, Plus } from "lucide-react";
@@ -39,10 +39,9 @@ export function ManageVehicleTypesDialog({ isOpen, onOpenChange, vehicleTypes }:
     }
 
     const typeId = newTypeName.toLowerCase().replace(/\s+/g, '-');
-    const vehicleTypesCollection = collection(firestore, "vehicle_types");
-    const newTypeRef = doc(vehicleTypesCollection, typeId);
+    const newTypeRef = doc(firestore, "vehicle_types", typeId);
 
-    addDocumentNonBlocking(newTypeRef, { id: typeId, name: newTypeName });
+    setDocumentNonBlocking(newTypeRef, { id: typeId, name: newTypeName }, { merge: true });
 
     toast({
       title: "Vehicle Type Added",
