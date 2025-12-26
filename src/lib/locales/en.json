@@ -53,12 +53,15 @@
     "driverSuggestion": "Driver Suggestion",
     "vehicleSuggestion": "Vehicle Suggestion",
     "reason": "Reason",
-    "assign": "Assign",
+    "assign": "Accept & Assign",
     "cancel": "Cancel",
     "fetchingSuggestion": "Fetching AI suggestion...",
     "jobCreationTitle": "Create a New Job",
     "jobCreationDescription": "Fill in the details below to create a new transport job.",
-    "createJobButton": "Create Job"
+    "createJobButton": "Create Job",
+    "approveAndAssign": "Approve & Assign",
+    "startTransit": "Start Transit",
+    "markComplete": "Mark as Completed"
   },
   "users": {
     "name": "Name",

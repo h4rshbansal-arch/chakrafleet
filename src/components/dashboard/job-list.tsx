@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -16,17 +16,20 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, CheckCircle, XCircle, Truck, User } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useLanguage } from "@/hooks/use-language";
 import { Job, JobStatus, User, Vehicle } from "@/lib/types";
 import { AiSuggestionTool } from "./ai-suggestion-tool";
 import { useToast } from "@/hooks/use-toast";
 import { useCollection, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from "@/firebase";
-import { collection, query, where, doc, getDocs, or } from "firebase/firestore";
+import { collection, query, where, doc, or } from "firebase/firestore";
 import { format } from "date-fns";
 
 
@@ -46,6 +49,11 @@ export function JobList() {
     if (!allUsers) return new Map();
     return new Map(allUsers.map(u => [u.id, u]));
   }, [allUsers]);
+  
+  const vehicleMap = useMemo(() => {
+    if (!allVehicles) return new Map();
+    return new Map(allVehicles.map(v => [v.id, v]));
+  }, [allVehicles]);
 
   const jobsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -66,8 +74,7 @@ export function JobList() {
   const handleStatusChange = (jobId: string, status: JobStatus) => {
     const jobRef = doc(firestore, 'jobs', jobId);
     updateDocumentNonBlocking(jobRef, { status });
-    if (status === 'Approved') toast({ title: t('notifications.jobApproved'), description: `Job #${jobId}` });
-    if (status === 'Rejected') toast({ title: t('notifications.jobRejected'), variant: 'destructive', description: `Job #${jobId}` });
+    toast({ title: t('notifications.statusUpdated'), description: `Job #${jobId} is now ${status}` });
   };
 
   const handleClaimJob = (jobId: string) => {
@@ -87,13 +94,19 @@ export function JobList() {
     updateDocumentNonBlocking(jobRef, { assignedDriverId: driverId, assignedVehicleId: vehicleId, status: 'Approved' });
     toast({ title: t('notifications.jobAssigned'), description: `Driver and vehicle assigned to Job #${jobId}` });
   };
+  
+  const handleReject = (jobId: string) => {
+    const jobRef = doc(firestore, 'jobs', jobId);
+    updateDocumentNonBlocking(jobRef, { status: 'Rejected' });
+    toast({ title: t('notifications.jobRejected'), variant: 'destructive', description: `Job #${jobId}` });
+  }
 
   const getStatusBadgeVariant = (status: JobStatus) => {
     switch (status) {
       case "Completed":
         return "default";
       case "Approved":
-      case "In Progress":
+      case "In Transit":
         return "secondary";
       case "Unclaimed":
       case "Pending":
@@ -131,7 +144,7 @@ export function JobList() {
         <TableHeader>
           <TableRow>
             <TableHead>{t('jobs.title')}</TableHead>
-            <TableHead>Supervisor</TableHead>
+            <TableHead>Assignments</TableHead>
             <TableHead>{t('jobs.destination')}</TableHead>
             <TableHead>{t('jobs.date')}</TableHead>
             <TableHead>{t('jobs.status')}</TableHead>
@@ -143,8 +156,30 @@ export function JobList() {
         <TableBody>
           {jobs && jobs.map((job) => (
             <TableRow key={job.id}>
-              <TableCell className="font-medium">{job.title}</TableCell>
-              <TableCell>{job.supervisorId ? (userMap.get(job.supervisorId)?.name || 'Unknown') : 'N/A'}</TableCell>
+              <TableCell className="font-medium">
+                <div className="flex flex-col">
+                  <span>{job.title}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {job.supervisorId ? `Sup: ${userMap.get(job.supervisorId)?.name || 'Unknown'}` : 'Unsupervised'}
+                  </span>
+                </div>
+              </TableCell>
+              <TableCell>
+                 <div className="flex flex-col text-sm">
+                    {job.driverId ? (
+                        <div className="flex items-center gap-2">
+                           <User className="h-4 w-4 text-muted-foreground" /> 
+                           <span>{userMap.get(job.driverId)?.name || 'Unknown Driver'}</span>
+                        </div>
+                    ) : <span className="text-muted-foreground">No driver</span>}
+                    {job.vehicleId ? (
+                        <div className="flex items-center gap-2">
+                           <Truck className="h-4 w-4 text-muted-foreground" /> 
+                           <span>{vehicleMap.get(job.vehicleId)?.name || 'Unknown Vehicle'}</span>
+                        </div>
+                    ) : <span className="text-muted-foreground">No vehicle</span>}
+                 </div>
+              </TableCell>
               <TableCell>{job.destination}</TableCell>
               <TableCell>{formatJobDate(job.date, job.time)}</TableCell>
               <TableCell>
@@ -164,21 +199,31 @@ export function JobList() {
                      {user?.role === 'Supervisor' && job.status === 'Unclaimed' && (
                         <DropdownMenuItem onClick={() => handleClaimJob(job.id)}>{t('jobs.claim')}</DropdownMenuItem>
                     )}
-                    {user?.role === 'Admin' && job.status === 'Pending' && (
+                    {user?.role === 'Admin' && (job.status === 'Pending' || job.status === 'Unclaimed') && (
                       <>
-                        <DropdownMenuItem onClick={() => handleStatusChange(job.id, 'Approved')}>{t('jobs.approve')}</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleStatusChange(job.id, 'Rejected')}>{t('jobs.reject')}</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleAiSuggest(job)}>{t('jobs.getAiSuggestion')}</DropdownMenuItem>
+                         <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => handleAiSuggest(job)}>
+                           <CheckCircle className="mr-2 h-4 w-4" />
+                           {t('jobs.approveAndAssign')}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleReject(job.id)} className="text-destructive">
+                           <XCircle className="mr-2 h-4 w-4" />
+                           {t('jobs.reject')}
+                        </DropdownMenuItem>
                       </>
                     )}
-                     {user?.role === 'Admin' && job.status === 'Unclaimed' && (
-                      <>
-                        <DropdownMenuItem onClick={() => handleAiSuggest(job)}>{t('jobs.getAiSuggestion')}</DropdownMenuItem>
-                      </>
-                    )}
-                    {user?.role === 'Driver' && (job.status === 'Approved' || job.status === 'In Progress') && (
-                       <DropdownMenuItem>{t('jobs.updateStatus')}</DropdownMenuItem>
+                    {user?.role === 'Driver' && (job.status === 'Approved' || job.status === 'In Transit') && (
+                       <DropdownMenuSub>
+                          <DropdownMenuSubTrigger>{t('jobs.updateStatus')}</DropdownMenuSubTrigger>
+                          <DropdownMenuSubContent>
+                             <DropdownMenuItem onClick={() => handleStatusChange(job.id, 'In Transit')}>
+                                {t('jobs.startTransit')}
+                             </DropdownMenuItem>
+                             <DropdownMenuItem onClick={() => handleStatusChange(job.id, 'Completed')}>
+                                {t('jobs.markComplete')}
+                             </DropdownMenuItem>
+                          </DropdownMenuSubContent>
+                       </DropdownMenuSub>
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>

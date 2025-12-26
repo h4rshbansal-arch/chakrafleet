@@ -53,12 +53,15 @@
     "driverSuggestion": "ड्राइवर सुझाव",
     "vehicleSuggestion": "वाहन सुझाव",
     "reason": "कारण",
-    "assign": "सौंपें",
+    "assign": "स्वीकार करें और सौंपें",
     "cancel": "रद्द करें",
     "fetchingSuggestion": "AI सुझाव प्राप्त हो रहा है...",
     "jobCreationTitle": "एक नई नौकरी बनाएं",
     "jobCreationDescription": "एक नई परिवहन नौकरी बनाने के लिए नीचे दिए गए विवरण भरें।",
-    "createJobButton": "नौकरी बनाएं"
+    "createJobButton": "नौकरी बनाएं",
+    "approveAndAssign": "अनुमोदन और सौंपें",
+    "startTransit": "पारगमन शुरू करें",
+    "markComplete": "पूर्ण के रूप में चिह्नित करें"
   },
   "users": {
     "name": "नाम",

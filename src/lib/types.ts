@@ -31,7 +31,7 @@ export interface VehicleTypeDefinition {
   name: string;
 }
 
-export type JobStatus = 'Pending' | 'Approved' | 'In Progress' | 'Completed' | 'Rejected' | 'Unclaimed';
+export type JobStatus = 'Pending' | 'Approved' | 'In Transit' | 'Completed' | 'Rejected' | 'Unclaimed';
 
 export interface Job {
   id:string;
