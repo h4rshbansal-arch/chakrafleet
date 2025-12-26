@@ -13,19 +13,20 @@ import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy, limit } from "firebase/firestore";
 import { ActivityLog as ActivityLogType, User } from "@/lib/types";
 import { format } from "date-fns";
+import { useMemo } from "react";
 
 export function ActivityLog() {
   const { t } = useLanguage();
   const firestore = useFirestore();
 
-  const logsQuery = useMemoFirebase(() => query(collection(firestore, 'activity_logs'), orderBy('timestamp', 'desc'), limit(10)), [firestore]);
-  const { data: activityLogs, isLoading } = useCollection<ActivityLogType>(logsQuery);
+  const logsQuery = useMemoFirebase(() => query(collection(firestore, 'activity_logs'), orderBy('timestamp', 'desc'), limit(50)), [firestore]);
+  const { data: activityLogs, isLoading: isLoadingLogs } = useCollection<ActivityLogType>(logsQuery);
   
   const usersQuery = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
-  const { data: users } = useCollection<User>(usersQuery);
+  const { data: users, isLoading: isLoadingUsers } = useCollection<User>(usersQuery);
 
-  // Memoize the user map for performance
-  const userMap = useMemoFirebase(() => {
+  // Memoize the user map for performance. This is crucial to prevent re-renders.
+  const userMap = useMemo(() => {
     if (!users) return new Map<string, string>();
     return new Map(users.map(u => [u.id, u.name]));
   }, [users]);
@@ -34,7 +35,7 @@ export function ActivityLog() {
     return userMap.get(userId) || "Unknown User";
   };
   
-  if (isLoading) {
+  if (isLoadingLogs || isLoadingUsers) {
     return <div>Loading activity...</div>
   }
 
