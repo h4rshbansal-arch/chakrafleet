@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { UserRole } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { useFirestore } from '@/firebase';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 
 interface RegistrationFormProps {
   onRegistrationComplete?: () => void;
@@ -17,12 +19,33 @@ interface RegistrationFormProps {
 
 export function RegistrationForm({ onRegistrationComplete, isAdminRegistration = false }: RegistrationFormProps) {
   const { signup } = useAuth();
+  const firestore = useFirestore();
   const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [role, setRole] = useState<UserRole>('Driver');
   const [isLoading, setIsLoading] = useState(false);
+  const [showAdminOption, setShowAdminOption] = useState(isAdminRegistration);
+
+  useEffect(() => {
+    // Only run this check for the public registration form
+    if (!isAdminRegistration) {
+      const checkAdminExists = async () => {
+        try {
+          const usersRef = collection(firestore, 'users');
+          const q = query(usersRef, where('role', '==', 'Admin'));
+          const querySnapshot = await getDocs(q);
+          setShowAdminOption(querySnapshot.empty);
+        } catch (error) {
+          console.error("Error checking for admin user:", error);
+          // Default to not showing the admin option if there's an error
+          setShowAdminOption(false);
+        }
+      };
+      checkAdminExists();
+    }
+  }, [firestore, isAdminRegistration]);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,7 +115,7 @@ export function RegistrationForm({ onRegistrationComplete, isAdminRegistration =
             <SelectContent>
                 <SelectItem value="Driver">Driver</SelectItem>
                 <SelectItem value="Supervisor">Supervisor</SelectItem>
-                 {isAdminRegistration && <SelectItem value="Admin">Admin</SelectItem>}
+                 {showAdminOption && <SelectItem value="Admin">Admin</SelectItem>}
             </SelectContent>
         </Select>
       </div>
