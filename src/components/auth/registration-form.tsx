@@ -8,18 +8,18 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { UserRole } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { useFirestore, setDocumentNonBlocking } from '@/firebase';
+import { setDocumentNonBlocking, useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 interface RegistrationFormProps {
   onRegistrationComplete?: () => void;
+  // If true, shows all roles (for admin use). If false or undefined, hides Admin role.
+  isAdminRegistration?: boolean;
 }
 
-export function RegistrationForm({ onRegistrationComplete }: RegistrationFormProps) {
-  const { auth } = useAuth();
-  const firestore = useFirestore();
+export function RegistrationForm({ onRegistrationComplete, isAdminRegistration = false }: RegistrationFormProps) {
+  const { signup, user } = useAuth();
   const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -31,22 +31,14 @@ export function RegistrationForm({ onRegistrationComplete }: RegistrationFormPro
     e.preventDefault();
     setIsLoading(true);
     try {
-      const cred = await createUserWithEmailAndPassword(auth, email, password);
-      const userRef = doc(firestore, "users", cred.user.uid);
-      const newUserProfile = {
-        id: cred.user.uid,
-        name: name,
-        email: email,
-        role: role,
-        avatarUrl: PlaceHolderImages.find(p => p.imageHint.includes('person'))?.imageUrl || '',
-      };
-      
-      setDocumentNonBlocking(userRef, newUserProfile, { merge: true });
+      // Use the signup function from auth context
+      await signup(email, password, name, role, { redirect: !onRegistrationComplete });
 
       toast({
-        title: "User Created",
+        title: "Account Created",
         description: `Account for ${name} has been created successfully.`,
       });
+      // Call the callback if it's provided (for closing a dialog, for example)
       onRegistrationComplete?.();
     } catch (error: any) {
       toast({
@@ -103,7 +95,7 @@ export function RegistrationForm({ onRegistrationComplete }: RegistrationFormPro
             <SelectContent>
                 <SelectItem value="Driver">Driver</SelectItem>
                 <SelectItem value="Supervisor">Supervisor</SelectItem>
-                 <SelectItem value="Admin">Admin</SelectItem>
+                 {isAdminRegistration && <SelectItem value="Admin">Admin</SelectItem>}
             </SelectContent>
         </Select>
       </div>

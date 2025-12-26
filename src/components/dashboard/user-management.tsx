@@ -34,6 +34,7 @@ export function UserManagement() {
   const { data: users, isLoading } = useCollection<User>(usersQuery);
 
   const getInitials = (name: string) => {
+    if (!name) return '';
     return name
       .split(' ')
       .map((n) => n[0])
@@ -58,7 +59,7 @@ export function UserManagement() {
             <DialogHeader>
               <DialogTitle>Create a New User</DialogTitle>
             </DialogHeader>
-            <RegistrationForm onRegistrationComplete={() => setIsDialogOpen(false)} />
+            <RegistrationForm onRegistrationComplete={() => setIsDialogOpen(false)} isAdminRegistration={true} />
           </DialogContent>
         </Dialog>
       </div>
