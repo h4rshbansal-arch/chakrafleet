@@ -1,0 +1,86 @@
+{
+  "login": {
+    "title": "Welcome to EZTransport",
+    "subtitle": "Select your role to sign in",
+    "admin": "Admin",
+    "supervisor": "Supervisor",
+    "driver": "Driver",
+    "button": "Sign In as {0}"
+  },
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "jobs": "Jobs",
+    "users": "Users",
+    "vehicles": "Vehicles",
+    "logs": "Activity Logs",
+    "createJob": "Create Job",
+    "jobHistory": "Job History"
+  },
+  "header": {
+    "profile": "Profile",
+    "settings": "Settings",
+    "logout": "Log out"
+  },
+  "dashboard": {
+    "welcome": "Welcome back, {0}!",
+    "description": "Here's what's happening with your fleet today.",
+    "pendingJobs": "Pending Jobs",
+    "approvedJobs": "Approved Jobs",
+    "activeDrivers": "Active Drivers",
+    "completedJobs": "Completed Jobs",
+    "recentActivity": "Recent Activity",
+    "jobRequests": "Job Requests",
+    "userManagement": "User Management",
+    "vehicleManagement": "Vehicle Management",
+    "activityLog": "Activity Log"
+  },
+  "jobs": {
+    "title": "Title",
+    "origin": "Origin",
+    "destination": "Destination",
+    "date": "Date",
+    "status": "Status",
+    "actions": "Actions",
+    "approve": "Approve",
+    "reject": "Reject",
+    "view": "View",
+    "updateStatus": "Update Status",
+    "getAiSuggestion": "Get AI Suggestion",
+    "aiSuggestionTitle": "AI-Powered Job Assignment",
+    "aiSuggestionDescription": "Our AI has analyzed the job requirements and suggests the following assignments.",
+    "driverSuggestion": "Driver Suggestion",
+    "vehicleSuggestion": "Vehicle Suggestion",
+    "reason": "Reason",
+    "assign": "Assign",
+    "cancel": "Cancel",
+    "fetchingSuggestion": "Fetching AI suggestion...",
+    "jobCreationTitle": "Create a New Job",
+    "jobCreationDescription": "Fill in the details below to create a new transport job.",
+    "createJobButton": "Create Job"
+  },
+  "users": {
+    "name": "Name",
+    "email": "Email",
+    "role": "Role"
+  },
+  "vehicles": {
+    "name": "Name",
+    "type": "Type",
+    "capacity": "Capacity",
+    "status": "Status",
+    "location": "Location"
+  },
+  "logs": {
+    "user": "User",
+    "action": "Action",
+    "details": "Details",
+    "timestamp": "Timestamp"
+  },
+  "notifications": {
+    "jobCreated": "Job created successfully!",
+    "jobApproved": "Job approved!",
+    "jobRejected": "Job rejected!",
+    "jobAssigned": "Job assigned successfully!",
+    "statusUpdated": "Job status updated!"
+  }
+}

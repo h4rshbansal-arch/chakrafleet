@@ -1,0 +1,118 @@
+"use client";
+
+import Link from "next/link";
+import {
+  Home,
+  Package,
+  Users,
+  Truck,
+  FileText,
+  PlusCircle,
+  History,
+  PanelLeft,
+} from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useAuth } from "@/contexts/auth-context";
+import { useLanguage } from "@/hooks/use-language";
+import { Logo } from "@/components/icons/logo";
+
+export function AppSidebar() {
+  const { user } = useAuth();
+  const { t } = useLanguage();
+
+  const navItems = {
+    Admin: [
+      { href: "/admin/dashboard", icon: Home, label: t('sidebar.dashboard') },
+      { href: "/admin/dashboard", icon: Package, label: t('sidebar.jobs') },
+      { href: "/admin/dashboard", icon: Users, label: t('sidebar.users') },
+      { href: "/admin/dashboard", icon: Truck, label: t('sidebar.vehicles') },
+      { href: "/admin/dashboard", icon: FileText, label: t('sidebar.logs') },
+    ],
+    Supervisor: [
+      { href: "/supervisor/dashboard", icon: Home, label: t('sidebar.dashboard') },
+      { href: "/supervisor/dashboard", icon: PlusCircle, label: t('sidebar.createJob') },
+      { href: "/supervisor/dashboard", icon: History, label: t('sidebar.jobHistory') },
+    ],
+    Driver: [
+      { href: "/driver/dashboard", icon: Home, label: t('sidebar.dashboard') },
+      { href: "/driver/dashboard", icon: Package, label: t('sidebar.jobs') },
+      { href: "/driver/dashboard", icon: History, label: t('sidebar.jobHistory') },
+    ],
+  };
+
+  const currentNavItems = user ? navItems[user.role] : [];
+  
+  const NavLinks = ({ isTooltip = false }: { isTooltip?: boolean }) => (
+    <TooltipProvider>
+      {currentNavItems.map((item, index) => (
+        <Tooltip key={index}>
+          <TooltipTrigger asChild>
+            <Link
+              href={item.href}
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
+            >
+              <item.icon className="h-5 w-5" />
+              <span className="sr-only">{item.label}</span>
+            </Link>
+          </TooltipTrigger>
+          {isTooltip && <TooltipContent side="right">{item.label}</TooltipContent>}
+        </Tooltip>
+      ))}
+    </TooltipProvider>
+  );
+
+  return (
+    <>
+      <aside className="fixed inset-y-0 left-0 z-10 hidden w-14 flex-col border-r bg-background sm:flex">
+        <nav className="flex flex-col items-center gap-4 px-2 sm:py-5">
+          <Link
+            href="/dashboard"
+            className="group flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:h-8 md:w-8 md:text-base"
+          >
+            <Logo className="h-5 w-5 transition-all group-hover:scale-110" />
+            <span className="sr-only">EZTransport</span>
+          </Link>
+          <NavLinks isTooltip />
+        </nav>
+      </aside>
+      <div className="sm:hidden">
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button size="icon" variant="outline" className="sm:hidden">
+              <PanelLeft className="h-5 w-5" />
+              <span className="sr-only">Toggle Menu</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="sm:max-w-xs">
+            <nav className="grid gap-6 text-lg font-medium">
+              <Link
+                href="/dashboard"
+                className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
+              >
+                <Logo className="h-5 w-5 transition-all group-hover:scale-110" />
+                <span className="sr-only">EZTransport</span>
+              </Link>
+              {currentNavItems.map((item, index) => (
+                <Link
+                  key={index}
+                  href={item.href}
+                  className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+                >
+                  <item.icon className="h-5 w-5" />
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+          </SheetContent>
+        </Sheet>
+      </div>
+    </>
+  );
+}

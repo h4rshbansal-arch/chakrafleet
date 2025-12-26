@@ -1,0 +1,86 @@
+{
+  "login": {
+    "title": "EZTransport में आपका स्वागत है",
+    "subtitle": "साइन इन करने के लिए अपनी भूमिका चुनें",
+    "admin": "एडमिन",
+    "supervisor": "सुपरवाइजर",
+    "driver": "ड्राइवर",
+    "button": "{0} के रूप में साइन इन करें"
+  },
+  "sidebar": {
+    "dashboard": "डैशबोर्ड",
+    "jobs": "नौकरियाँ",
+    "users": "उपयोगकर्ता",
+    "vehicles": "वाहन",
+    "logs": "गतिविधि लॉग",
+    "createJob": "नौकरी बनाएं",
+    "jobHistory": "नौकरी का इतिहास"
+  },
+  "header": {
+    "profile": "प्रोफ़ाइल",
+    "settings": "सेटिंग्स",
+    "logout": "लॉग आउट"
+  },
+  "dashboard": {
+    "welcome": "वापस स्वागत है, {0}!",
+    "description": "यहाँ आज आपके बेड़े के साथ क्या हो रहा है।",
+    "pendingJobs": "लंबित नौकरियाँ",
+    "approvedJobs": "स्वीकृत नौकरियाँ",
+    "activeDrivers": "सक्रिय ड्राइवर",
+    "completedJobs": "पूरी हुई नौकरियाँ",
+    "recentActivity": "हाल की गतिविधि",
+    "jobRequests": "नौकरी अनुरोध",
+    "userManagement": "उपयोगकर्ता प्रबंधन",
+    "vehicleManagement": "वाहन प्रबंधन",
+    "activityLog": "गतिविधि लॉग"
+  },
+  "jobs": {
+    "title": "शीर्षक",
+    "origin": "मूल",
+    "destination": "गंतव्य",
+    "date": "तारीख",
+    "status": "स्थिति",
+    "actions": "कार्रवाइयाँ",
+    "approve": "अनुमोदन दें",
+    "reject": "अस्वीकार करें",
+    "view": "देखें",
+    "updateStatus": "स्थिति अपडेट करें",
+    "getAiSuggestion": "AI सुझाव प्राप्त करें",
+    "aiSuggestionTitle": "AI-संचालित नौकरी असाइनमेंट",
+    "aiSuggestionDescription": "हमारे AI ने नौकरी की आवश्यकताओं का विश्लेषण किया है और निम्नलिखित असाइनमेंट का सुझाव देता है।",
+    "driverSuggestion": "ड्राइवर सुझाव",
+    "vehicleSuggestion": "वाहन सुझाव",
+    "reason": "कारण",
+    "assign": "सौंपें",
+    "cancel": "रद्द करें",
+    "fetchingSuggestion": "AI सुझाव प्राप्त हो रहा है...",
+    "jobCreationTitle": "एक नई नौकरी बनाएं",
+    "jobCreationDescription": "एक नई परिवहन नौकरी बनाने के लिए नीचे दिए गए विवरण भरें।",
+    "createJobButton": "नौकरी बनाएं"
+  },
+  "users": {
+    "name": "नाम",
+    "email": "ईमेल",
+    "role": "भूमिका"
+  },
+  "vehicles": {
+    "name": "नाम",
+    "type": "प्रकार",
+    "capacity": "क्षमता",
+    "status": "स्थिति",
+    "location": "स्थान"
+  },
+  "logs": {
+    "user": "उपयोगकर्ता",
+    "action": "कार्रवाई",
+    "details": "विवरण",
+    "timestamp": "समय"
+  },
+  "notifications": {
+    "jobCreated": "नौकरी सफलतापूर्वक बन गई!",
+    "jobApproved": "नौकरी स्वीकृत!",
+    "jobRejected": "नौकरी अस्वीकृत!",
+    "jobAssigned": "नौकरी सफलतापूर्वक सौंपी गई!",
+    "statusUpdated": "नौकरी की स्थिति अपडेट हो गई!"
+  }
+}
