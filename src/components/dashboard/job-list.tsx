@@ -25,8 +25,8 @@ import { useLanguage } from "@/hooks/use-language";
 import { Job, JobStatus } from "@/lib/types";
 import { AiSuggestionTool } from "./ai-suggestion-tool";
 import { useToast } from "@/hooks/use-toast";
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
-import { collection, query, where, doc, updateDoc } from "firebase/firestore";
+import { useCollection, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from "@/firebase";
+import { collection, query, where, doc } from "firebase/firestore";
 import { vehicles as allVehicles, users as allUsers } from "@/lib/data"; // for now
 
 export function JobList() {
@@ -51,9 +51,9 @@ export function JobList() {
 
   const { data: jobs, isLoading } = useCollection<Job>(jobsQuery);
 
-  const handleStatusChange = async (jobId: string, status: JobStatus) => {
+  const handleStatusChange = (jobId: string, status: JobStatus) => {
     const jobRef = doc(firestore, 'jobs', jobId);
-    await updateDoc(jobRef, { status });
+    updateDocumentNonBlocking(jobRef, { status });
     if (status === 'Approved') toast({ title: t('notifications.jobApproved'), description: `Job #${jobId}` });
     if (status === 'Rejected') toast({ title: t('notifications.jobRejected'), variant: 'destructive', description: `Job #${jobId}` });
   };
@@ -63,9 +63,9 @@ export function JobList() {
     setIsAiModalOpen(true);
   };
   
-  const handleAssign = async (jobId: string, driverId: string, vehicleId: string) => {
+  const handleAssign = (jobId: string, driverId: string, vehicleId: string) => {
     const jobRef = doc(firestore, 'jobs', jobId);
-    await updateDoc(jobRef, { driverId, vehicleId, status: 'Approved' });
+    updateDocumentNonBlocking(jobRef, { driverId, vehicleId, status: 'Approved' });
     toast({ title: t('notifications.jobAssigned'), description: `Driver and vehicle assigned to Job #${jobId}` });
   };
 

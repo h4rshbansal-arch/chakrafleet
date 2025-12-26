@@ -3,9 +3,9 @@
 import React, { createContext, useContext, ReactNode, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { UserRole } from "@/lib/types";
-import { useFirebase } from "@/firebase";
+import { useFirebase, setDocumentNonBlocking } from "@/firebase";
 import { signInAnonymously, User as FirebaseUser } from "firebase/auth";
-import { doc, setDoc, getDoc, Firestore, onSnapshot } from "firebase/firestore";
+import { doc, getDoc, Firestore, onSnapshot } from "firebase/firestore";
 import { users as mockUsers } from "@/lib/data";
 
 interface UserProfile {
@@ -33,13 +33,14 @@ const createUserProfile = async (firestore: Firestore, firebaseUser: FirebaseUse
   const userSnap = await getDoc(userRef);
   if (!userSnap.exists()) {
     const mockUser = mockUsers.find(u => u.role === role);
-    const newUserProfile: Omit<UserProfile, 'id'> = {
+    const newUserProfile: Omit<UserProfile, 'id'> & { id: string } = {
+      id: firebaseUser.uid,
       name: mockUser?.name || 'Anonymous User',
       email: mockUser?.email || `anonymous@${firebaseUser.uid.substring(0,5)}.com`,
       role: role,
       avatarUrl: mockUser?.avatarUrl || '',
     };
-    await setDoc(userRef, newUserProfile);
+    setDocumentNonBlocking(userRef, newUserProfile, { merge: true });
   }
 };
 

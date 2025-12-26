@@ -46,7 +46,7 @@ export function JobCreationForm() {
     },
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  function onSubmit(values: z.infer<typeof formSchema>) {
     if (!user) {
       toast({ title: "Error", description: "You must be logged in to create a job.", variant: "destructive"});
       return;
@@ -56,7 +56,7 @@ export function JobCreationForm() {
     
     addDocumentNonBlocking(jobsCollection, {
       ...values,
-      supervisorId: user.id,
+      requestingSupervisorId: user.id,
       status: 'Pending',
       requestDate: serverTimestamp(),
     })
@@ -91,7 +91,7 @@ export function JobCreationForm() {
               )}
             />
             <FormField
-              control={form.control}
+              control-={form.control}
               name="description"
               render={({ field }) => (
                 <FormItem>
