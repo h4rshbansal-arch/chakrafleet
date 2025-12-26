@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { Shield, Briefcase, SteeringWheel } from 'lucide-react';
+import { Shield, Briefcase, Car } from 'lucide-react';
 import { useLanguage } from '@/hooks/use-language';
 import { Logo } from '@/components/icons/logo';
 
@@ -24,7 +24,7 @@ export function LoginForm() {
   const roles: { id: UserRole, label: string, icon: React.ElementType }[] = [
     { id: 'Admin', label: t('login.admin'), icon: Shield },
     { id: 'Supervisor', label: t('login.supervisor'), icon: Briefcase },
-    { id: 'Driver', label: t('login.driver'), icon: SteeringWheel },
+    { id: 'Driver', label: t('login.driver'), icon: Car },
   ];
 
   return (
