@@ -9,7 +9,7 @@ import {
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword
 } from "firebase/auth";
-import { doc, getDoc, Firestore, onSnapshot } from "firebase/firestore";
+import { doc, getDoc, Firestore, onSnapshot, collection, getDocs, query } from "firebase/firestore";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 
 interface UserProfile {
@@ -20,11 +20,15 @@ interface UserProfile {
   avatarUrl: string;
 }
 
+interface SignupOptions {
+  redirect?: boolean;
+}
+
 interface AuthContextType {
   user: UserProfile | null;
   firebaseUser: FirebaseUser | null;
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, name: string, role: UserRole) => Promise<void>;
+  signup: (email: string, password: string, name: string, role: UserRole, options?: SignupOptions) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
   isUserLoading: boolean;
@@ -48,11 +52,36 @@ const createUserProfile = async (firestore: Firestore, firebaseUser: FirebaseUse
   }
 };
 
+const seedInitialAdmin = async (firestore: Firestore, auth: AuthContextType['auth']) => {
+    const usersQuery = query(collection(firestore, "users"));
+    const querySnapshot = await getDocs(usersQuery);
+    if (querySnapshot.empty) {
+        console.log("No users found, creating initial admin user.");
+        try {
+            const cred = await createUserWithEmailAndPassword(auth, 'ishwar@stoneman.com', 'ishwar@121');
+            await createUserProfile(firestore, cred.user, 'Ishwar Stoneman', 'ishwar@stoneman.com', 'Admin');
+            console.log("Initial admin user created successfully.");
+        } catch (error: any) {
+            if (error.code !== 'auth/email-already-in-use') {
+                console.error("Error creating initial admin user:", error);
+            } else {
+                console.log("Initial admin user already exists.");
+            }
+        }
+    }
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { auth, firestore, user: firebaseUser, isUserLoading: isFirebaseUserLoading } = useFirebase();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isProfileLoading, setProfileLoading] = useState(true);
   const router = useRouter();
+
+  useEffect(() => {
+    if (firestore && auth) {
+      seedInitialAdmin(firestore, auth);
+    }
+  }, [firestore, auth]);
 
   const userDocRef = useMemoFirebase(() => {
     if (!firebaseUser) return null;
@@ -85,10 +114,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push("/dashboard");
   };
 
-  const signup = async (email: string, password: string, name: string, role: UserRole) => {
+  const signup = async (email: string, password: string, name: string, role: UserRole, options: SignupOptions = { redirect: true }) => {
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     await createUserProfile(firestore, cred.user, name, email, role);
-    router.push("/dashboard");
+    if (options.redirect) {
+      router.push("/dashboard");
+    }
   }
 
   const logout = () => {

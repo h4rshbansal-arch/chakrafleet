@@ -5,15 +5,13 @@ import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useLanguage } from '@/hooks/use-language';
 import { useToast } from '@/hooks/use-toast';
 
 export function LoginForm() {
   const { login } = useAuth();
-  const { t } = useLanguage();
   const { toast } = useToast();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('ishwar@stoneman.com');
+  const [password, setPassword] = useState('ishwar@121');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {

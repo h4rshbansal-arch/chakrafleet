@@ -9,7 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { UserRole } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
-export function RegistrationForm() {
+interface RegistrationFormProps {
+  onRegistrationComplete?: () => void;
+}
+
+export function RegistrationForm({ onRegistrationComplete }: RegistrationFormProps) {
   const { signup } = useAuth();
   const { toast } = useToast();
   const [email, setEmail] = useState('');
@@ -22,14 +26,19 @@ export function RegistrationForm() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await signup(email, password, name, role);
-      // Let the AuthProvider handle redirection
+      await signup(email, password, name, role, { redirect: false });
+      toast({
+        title: "User Created",
+        description: `Account for ${name} has been created successfully.`,
+      });
+      onRegistrationComplete?.();
     } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Registration Failed",
-        description: error.message || "Could not create your account. Please try again.",
+        description: error.message || "Could not create the account. Please try again.",
       });
+    } finally {
       setIsLoading(false);
     }
   };
