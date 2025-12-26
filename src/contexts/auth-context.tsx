@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { UserRole } from "@/lib/types";
 import { useFirebase } from "@/firebase";
 import { signInAnonymously, User as FirebaseUser } from "firebase/auth";
-import { doc, setDoc, getDoc, Firestore } from "firebase/firestore";
+import { doc, setDoc, getDoc, Firestore, onSnapshot } from "firebase/firestore";
 import { users as mockUsers } from "@/lib/data";
 
 interface UserProfile {
@@ -57,7 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const userRef = doc(firestore, "users", firebaseUser.uid);
-    const sub = userRef.onSnapshot((doc) => {
+    const sub = onSnapshot(userRef, (doc) => {
       if (doc.exists()) {
         setUser({ id: doc.id, ...doc.data() } as UserProfile);
       } else {
