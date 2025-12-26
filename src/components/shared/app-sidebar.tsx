@@ -23,13 +23,16 @@ import { useAuth } from "@/contexts/auth-context";
 import { useLanguage } from "@/hooks/use-language";
 import { Logo } from "@/components/icons/logo";
 import { useDashboard } from "@/contexts/dashboard-context";
+import { useRouter } from "next/navigation";
 
 export function AppSidebar() {
   const { user } = useAuth();
   const { t } = useLanguage();
   const { setActiveTab } = useDashboard();
+  const router = useRouter();
 
   const handleAdminNav = (tab: string) => {
+    router.push('/admin/dashboard');
     setActiveTab(tab);
   };
 
@@ -37,6 +40,7 @@ export function AppSidebar() {
     Admin: [
       { href: "/admin/dashboard", icon: Home, label: t('sidebar.dashboard'), action: () => handleAdminNav('jobs') },
       { href: "/admin/dashboard", icon: Package, label: t('sidebar.jobs'), action: () => handleAdminNav('jobs') },
+      { href: "/admin/dashboard", icon: PlusCircle, label: t('sidebar.createJob'), action: () => handleAdminNav('create-job') },
       { href: "/admin/dashboard", icon: Users, label: t('sidebar.users'), action: () => handleAdminNav('users') },
       { href: "/admin/dashboard", icon: Truck, label: t('sidebar.vehicles'), action: () => handleAdminNav('vehicles') },
       { href: "/admin/dashboard", icon: FileText, label: t('sidebar.logs'), action: () => handleAdminNav('logs') },
@@ -58,14 +62,22 @@ export function AppSidebar() {
   const NavLinks = ({ isTooltip = false, inSheet = false }: { isTooltip?: boolean, inSheet?: boolean }) => (
     <TooltipProvider>
       {currentNavItems.map((item, index) => {
-        const NavComponent = (
-          <Link
-            href={item.href}
-            onClick={item.action}
-            className={inSheet ? "flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground" : "flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"}
-          >
-            <item.icon className="h-5 w-5" />
-            {inSheet ? item.label : <span className="sr-only">{item.label}</span>}
+        const LinkContent = (
+            <>
+                <item.icon className="h-5 w-5" />
+                {inSheet ? item.label : <span className="sr-only">{item.label}</span>}
+            </>
+        );
+
+        const linkClassName = inSheet ? "flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground" : "flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8";
+
+        const NavComponent = item.action ? (
+            <button onClick={item.action} className={linkClassName}>
+                {LinkContent}
+            </button>
+        ) : (
+          <Link href={item.href} className={linkClassName}>
+             {LinkContent}
           </Link>
         );
 
