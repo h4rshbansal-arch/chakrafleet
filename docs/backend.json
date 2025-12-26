@@ -1,0 +1,318 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user within the EZTransport system.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user."
+        },
+        "firstName": {
+          "type": "string",
+          "description": "First name of the user."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "Last name of the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
+        },
+        "role": {
+          "type": "string",
+          "description": "Role of the user (Admin, Supervisor, Driver)."
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "Phone number of the user."
+        }
+      },
+      "required": [
+        "id",
+        "firstName",
+        "lastName",
+        "email",
+        "role"
+      ]
+    },
+    "Vehicle": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Vehicle",
+      "type": "object",
+      "description": "Represents a vehicle in the EZTransport system.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the vehicle."
+        },
+        "make": {
+          "type": "string",
+          "description": "Make of the vehicle."
+        },
+        "model": {
+          "type": "string",
+          "description": "Model of the vehicle."
+        },
+        "year": {
+          "type": "number",
+          "description": "Manufacturing year of the vehicle."
+        },
+        "licensePlate": {
+          "type": "string",
+          "description": "License plate number of the vehicle."
+        },
+        "capacity": {
+          "type": "number",
+          "description": "Carrying capacity of the vehicle."
+        },
+        "status": {
+          "type": "string",
+          "description": "Current status of the vehicle (e.g., Available, In Service, Under Maintenance)."
+        }
+      },
+      "required": [
+        "id",
+        "make",
+        "model",
+        "year",
+        "licensePlate",
+        "capacity",
+        "status"
+      ]
+    },
+    "Job": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Job",
+      "type": "object",
+      "description": "Represents a transport job within the EZTransport system.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the job."
+        },
+        "requestDate": {
+          "type": "string",
+          "description": "Date when the job was requested.",
+          "format": "date-time"
+        },
+        "pickupLocation": {
+          "type": "string",
+          "description": "Pickup location for the job."
+        },
+        "dropoffLocation": {
+          "type": "string",
+          "description": "Drop-off location for the job."
+        },
+        "pickupTime": {
+          "type": "string",
+          "description": "Scheduled pickup time for the job.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "Current status of the job (e.g., Pending, Approved, Assigned, In Transit, Completed, Cancelled)."
+        },
+        "assignedDriverId": {
+          "type": "string",
+          "description": "Reference to the assigned Driver. (Relationship: Driver 1:N Job)"
+        },
+        "assignedVehicleId": {
+          "type": "string",
+          "description": "Reference to the assigned Vehicle. (Relationship: Vehicle 1:N Job)"
+        },
+        "requestingSupervisorId": {
+          "type": "string",
+          "description": "Reference to the Supervisor who created the job request. (Relationship: Supervisor 1:N Job)"
+        },
+        "approvalAdminId": {
+          "type": "string",
+          "description": "Reference to the Admin who approved the job. (Relationship: Admin 1:N Job)"
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the job."
+        }
+      },
+      "required": [
+        "id",
+        "requestDate",
+        "pickupLocation",
+        "dropoffLocation",
+        "pickupTime",
+        "status"
+      ]
+    },
+    "ActivityLog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ActivityLog",
+      "type": "object",
+      "description": "Represents an activity log entry within the EZTransport system.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the activity log entry."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Timestamp of when the activity occurred.",
+          "format": "date-time"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who performed the action. (Relationship: User 1:N ActivityLog)"
+        },
+        "activityType": {
+          "type": "string",
+          "description": "Type of activity that was performed (e.g., Job Created, Job Approved, Vehicle Assigned)."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the activity."
+        }
+      },
+      "required": [
+        "id",
+        "timestamp",
+        "userId",
+        "activityType",
+        "description"
+      ]
+    },
+    "AiSuggestion": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AiSuggestion",
+      "type": "object",
+      "description": "Represents an AI suggestion for driver and vehicle assignment for a job.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the AI suggestion."
+        },
+        "jobId": {
+          "type": "string",
+          "description": "Reference to the Job for which the suggestion is made. (Relationship: Job 1:N AiSuggestion)"
+        },
+        "suggestedDriverId": {
+          "type": "string",
+          "description": "Reference to the suggested Driver. (Relationship: Driver 1:N AiSuggestion)"
+        },
+        "suggestedVehicleId": {
+          "type": "string",
+          "description": "Reference to the suggested Vehicle. (Relationship: Vehicle 1:N AiSuggestion)"
+        },
+        "reason": {
+          "type": "string",
+          "description": "Reasoning behind the AI's suggestion."
+        },
+        "confidenceScore": {
+          "type": "number",
+          "description": "Confidence score of the suggestion (0-1)."
+        }
+      },
+      "required": [
+        "id",
+        "jobId",
+        "suggestedDriverId",
+        "suggestedVehicleId",
+        "reason",
+        "confidenceScore"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles. Access control is based on the authenticated user's ID. userId refers to the currently logged in user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/vehicles/{vehicleId}",
+        "definition": {
+          "entityName": "Vehicle",
+          "schema": {
+            "$ref": "#/backend/entities/Vehicle"
+          },
+          "description": "Stores vehicle information.  Admins can manage all vehicles.",
+          "params": [
+            {
+              "name": "vehicleId",
+              "description": "The unique identifier of the vehicle."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/jobs/{jobId}",
+        "definition": {
+          "entityName": "Job",
+          "schema": {
+            "$ref": "#/backend/entities/Job"
+          },
+          "description": "Stores job requests. Admins and Supervisors can access these. Includes fields for assignedDriverId and assignedVehicleId to represent the Driver:Job and Vehicle:Job relationships respectively.",
+          "params": [
+            {
+              "name": "jobId",
+              "description": "The unique identifier of the job."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/activity_logs/{activityLogId}",
+        "definition": {
+          "entityName": "ActivityLog",
+          "schema": {
+            "$ref": "#/backend/entities/ActivityLog"
+          },
+          "description": "Stores activity logs for auditing and monitoring purposes. Includes the userId of the user who performed the action.",
+          "params": [
+            {
+              "name": "activityLogId",
+              "description": "The unique identifier of the activity log entry."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/ai_suggestions/{aiSuggestionId}",
+        "definition": {
+          "entityName": "AiSuggestion",
+          "schema": {
+            "$ref": "#/backend/entities/AiSuggestion"
+          },
+          "description": "Stores AI suggestions for driver and vehicle assignments. Includes references to the Job, Driver, and Vehicle.",
+          "params": [
+            {
+              "name": "aiSuggestionId",
+              "description": "The unique identifier of the AI suggestion."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to support a role-based access control system (Admin, Supervisor, Driver) for the EZTransport application. The structure emphasizes authorization independence to ensure secure and scalable operations. User roles are stored directly in the `users` collection, which avoids the use of custom claims, and access control is managed through a combination of path-based ownership and denormalized membership maps where appropriate.\n\nTo achieve authorization independence and support the required QAPs, the following strategies are applied:\n\n*   **Authorization Independence (CRITICAL):**  Avoids hierarchical authorization dependencies (`get()`).  All authorization context is stored directly within documents or is derived from the document path. This ensures atomic operations and simplifies security rules.\n*   **Structural Segregation (Homogeneous Security Posture):**  Each collection is designed to hold documents with similar security requirements. For instance, user profiles are stored in `/users/{userId}`, where access control is based on the authenticated user's ID.\n*   **Access Modeling:**\n    *   **Private Data:** User-specific data is stored under the `/users/{userId}` path to enforce path-based ownership.\n    *   **Collaborative Data:** For collaborative resources (if applicable in future extensions), the membership map pattern (`members: {uid1: \"role\", uid2: \"role\"}`) will be used, with denormalization to eliminate `get()` calls in rules.\n\nThis structure will make the database and the security rules predictable and maintainable."
+  }
+}
