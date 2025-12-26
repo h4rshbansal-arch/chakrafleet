@@ -11,7 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/hooks/use-language";
 import { Vehicle, VehicleStatus } from "@/lib/types";
-import { Truck, Car, Motorcycle } from 'lucide-react';
+import { Truck, Car, Bike } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection } from "firebase/firestore";
 
@@ -35,10 +35,10 @@ export function VehicleManagement() {
     }
   };
 
-  const vehicleIcons = {
+  const vehicleIcons: { [key: string]: React.ElementType } = {
     'Truck': Truck,
     'Van': Car,
-    'Motorcycle': Motorcycle
+    'Motorcycle': Bike
   }
 
   if (isLoading) {
@@ -58,7 +58,7 @@ export function VehicleManagement() {
       </TableHeader>
       <TableBody>
         {vehicles && vehicles.map((vehicle) => {
-          const Icon = vehicleIcons[vehicle.type];
+          const Icon = vehicle.type ? vehicleIcons[vehicle.type] : null;
           return (
             <TableRow key={vehicle.id}>
               <TableCell className="font-medium">{vehicle.name}</TableCell>
