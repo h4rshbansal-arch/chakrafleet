@@ -24,10 +24,15 @@ export function ActivityLog() {
   const usersQuery = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
   const { data: users } = useCollection<User>(usersQuery);
 
+  // Memoize the user map for performance
+  const userMap = useMemoFirebase(() => {
+    if (!users) return new Map<string, string>();
+    return new Map(users.map(u => [u.id, u.name]));
+  }, [users]);
+
   const getUserName = (userId: string) => {
-    const user = users?.find(u => u.id === userId);
-    return user ? user.name : "Unknown User";
-  }
+    return userMap.get(userId) || "Unknown User";
+  };
   
   if (isLoading) {
     return <div>Loading activity...</div>
