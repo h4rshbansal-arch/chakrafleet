@@ -32,8 +32,11 @@ import { useCollection, useFirestore, useMemoFirebase, updateDocumentNonBlocking
 import { collection, query, where, doc, or } from "firebase/firestore";
 import { format } from "date-fns";
 
+interface JobListProps {
+  showOnlyUnclaimed?: boolean;
+}
 
-export function JobList() {
+export function JobList({ showOnlyUnclaimed = false }: JobListProps) {
   const { user } = useAuth();
   const { t } = useLanguage();
   const { toast } = useToast();
@@ -58,16 +61,21 @@ export function JobList() {
   const jobsQuery = useMemoFirebase(() => {
     if (!user) return null;
     const q = collection(firestore, 'jobs');
+    
     if (user.role === 'Supervisor') {
-       // Supervisors see jobs they've created OR unclaimed jobs created by Admins
-       return query(q, or(where('supervisorId', '==', user.id), where('status', '==', 'Unclaimed')));
+       if (showOnlyUnclaimed) {
+         // Show only unclaimed jobs created by Admins
+         return query(q, where('status', '==', 'Unclaimed'));
+       }
+       // Supervisors see jobs they've created OR claimed
+       return query(q, where('supervisorId', '==', user.id));
     }
     if (user.role === 'Driver') {
       return query(q, where('assignedDriverId', '==', user.id));
     }
     // Admin sees all jobs
     return query(q);
-  }, [firestore, user]);
+  }, [firestore, user, showOnlyUnclaimed]);
 
   const { data: jobs, isLoading } = useCollection<Job>(jobsQuery);
 
