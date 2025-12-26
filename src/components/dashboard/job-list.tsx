@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MoreHorizontal, CheckCircle, XCircle, Truck, User } from "lucide-react";
+import { MoreHorizontal, CheckCircle, XCircle, Truck, User as UserIcon, Lightbulb } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useLanguage } from "@/hooks/use-language";
 import { Job, JobStatus, User, Vehicle } from "@/lib/types";
@@ -166,16 +166,16 @@ export function JobList() {
               </TableCell>
               <TableCell>
                  <div className="flex flex-col text-sm">
-                    {job.driverId ? (
+                    {job.assignedDriverId ? (
                         <div className="flex items-center gap-2">
-                           <User className="h-4 w-4 text-muted-foreground" /> 
-                           <span>{userMap.get(job.driverId)?.name || 'Unknown Driver'}</span>
+                           <UserIcon className="h-4 w-4 text-muted-foreground" /> 
+                           <span>{userMap.get(job.assignedDriverId)?.name || 'Unknown Driver'}</span>
                         </div>
                     ) : <span className="text-muted-foreground">No driver</span>}
-                    {job.vehicleId ? (
+                    {job.assignedVehicleId ? (
                         <div className="flex items-center gap-2">
                            <Truck className="h-4 w-4 text-muted-foreground" /> 
-                           <span>{vehicleMap.get(job.vehicleId)?.name || 'Unknown Vehicle'}</span>
+                           <span>{vehicleMap.get(job.assignedVehicleId)?.name || 'Unknown Vehicle'}</span>
                         </div>
                     ) : <span className="text-muted-foreground">No vehicle</span>}
                  </div>
@@ -203,7 +203,7 @@ export function JobList() {
                       <>
                          <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => handleAiSuggest(job)}>
-                           <CheckCircle className="mr-2 h-4 w-4" />
+                           <Lightbulb className="mr-2 h-4 w-4" />
                            {t('jobs.approveAndAssign')}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleReject(job.id)} className="text-destructive">

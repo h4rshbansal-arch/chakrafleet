@@ -14,7 +14,7 @@ export interface User {
 }
 
 export type VehicleStatus = 'available' | 'in-use' | 'maintenance';
-// VehicleType is now a string to support dynamic types.
+
 export type VehicleType = string;
 
 export interface Vehicle {
@@ -39,16 +39,15 @@ export interface Job {
   description: string;
   origin: string;
   destination: string;
-  date: string; // Consider using Timestamp for Firestore
+  date: string;
   time?: string;
   status: JobStatus;
-  driverId?: string;
-  vehicleId?: string;
+  assignedDriverId?: string;
+  assignedVehicleId?: string;
   supervisorId?: string;
-  creatorId: string; // ID of the user who created the job (Admin or Supervisor)
-  creatorRole: UserRole; // Role of the creator
+  creatorId: string;
+  creatorRole: UserRole;
   requestDate?: Timestamp;
-  pickupTime?: Timestamp;
 }
 
 export interface ActivityLog {
