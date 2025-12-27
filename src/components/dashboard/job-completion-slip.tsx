@@ -15,7 +15,6 @@ import { Job, User, Vehicle } from "@/lib/types";
 import { format } from "date-fns";
 import { Truck, User as UserIcon, Calendar, MapPin, CheckCircle, FileText, Clock } from "lucide-react";
 import React, { useRef } from "react";
-import { useReactToPrint } from "react-to-print";
 
 
 interface JobCompletionSlipProps {
@@ -28,10 +27,6 @@ interface JobCompletionSlipProps {
 
 export function JobCompletionSlip({ job, driver, vehicle, isOpen, onOpenChange }: JobCompletionSlipProps) {
     const componentRef = useRef(null);
-    const handlePrint = useReactToPrint({
-        content: () => componentRef.current,
-        documentTitle: `EZTransport-Slip-${job.id}`,
-    });
 
     const DetailRow = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string | undefined }) => (
         <div className="flex items-start">
@@ -96,9 +91,6 @@ export function JobCompletionSlip({ job, driver, vehicle, isOpen, onOpenChange }
 
           <DialogFooter>
             <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
-            <Button onClick={handlePrint}>
-              Print Slip
-            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
