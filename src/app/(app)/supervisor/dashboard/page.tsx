@@ -12,7 +12,7 @@ export default function SupervisorDashboard() {
     <div className="space-y-8">
       <AnalyticsCards />
       <Tabs defaultValue="my-jobs" className="space-y-4">
-        <TabsList>
+        <TabsList className="grid h-auto w-full grid-cols-1 sm:w-auto sm:grid-cols-3">
           <TabsTrigger value="my-jobs"><List className="mr-2 h-4 w-4" /> My Jobs</TabsTrigger>
           <TabsTrigger value="available-jobs"><FileCheck className="mr-2 h-4 w-4" /> Available Jobs</TabsTrigger>
           <TabsTrigger value="create-job"><FilePlus className="mr-2 h-4 w-4" /> Create Job</TabsTrigger>
@@ -45,7 +45,7 @@ export default function SupervisorDashboard() {
         </TabsContent>
         <TabsContent value="create-job">
            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            <div className="lg:col-span-2">
+            <div className="md:col-span-2">
               <JobCreationForm />
             </div>
           </div>

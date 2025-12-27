@@ -17,7 +17,7 @@ function AdminDashboardContent() {
     <div className="space-y-8">
       <AnalyticsCards />
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList>
+        <TabsList className="grid h-auto w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
           <TabsTrigger value="jobs"><Package className="mr-2 h-4 w-4" /> Job Requests</TabsTrigger>
           <TabsTrigger value="create-job"><PlusCircle className="mr-2 h-4 w-4" /> Create Job</TabsTrigger>
           <TabsTrigger value="users"><Users className="mr-2 h-4 w-4" /> User Management</TabsTrigger>
@@ -29,7 +29,7 @@ function AdminDashboardContent() {
         </TabsContent>
         <TabsContent value="create-job">
            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            <div className="lg:col-span-2">
+            <div className="md:col-span-2">
               <JobCreationForm />
             </div>
           </div>
