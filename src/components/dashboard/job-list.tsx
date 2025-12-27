@@ -34,16 +34,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { MoreHorizontal, CheckCircle, XCircle, Truck, User as UserIcon, Archive, Trash2, Replace, FileText } from "lucide-react";
+import { MoreHorizontal, CheckCircle, XCircle, Truck, User as UserIcon, Archive, Trash2, Replace, FileText, History } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useLanguage } from "@/hooks/use-language";
 import { Job, JobStatus, User, Vehicle } from "@/lib/types";
 import { ManualAssignmentDialog } from "./manual-assignment-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { useCollection, useFirestore, useMemoFirebase, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
-import { collection, query, where, doc } from "firebase/firestore";
+import { useCollection, useFirestore, useMemoFirebase, updateDocumentNonBlocking, deleteDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase";
+import { collection, query, where, doc, serverTimestamp } from "firebase/firestore";
 import { format } from "date-fns";
 import { JobCompletionSlip } from "./job-completion-slip";
+import { JobHistoryDialog } from "./job-history-dialog";
 
 interface JobListProps {
   showOnlyUnclaimed?: boolean;
@@ -58,9 +59,10 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
   const [isSlipModalOpen, setisSlipModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
-  const { data: allUsers } = useCollection<User>(useMemoFirebase(() => collection(firestore, 'users'), [firestore]));
-  const { data: allVehicles } = useCollection<Vehicle>(useMemoFirebase(() => collection(firestore, 'vehicles'), [firestore]));
+  const { data: allUsers, isLoading: isLoadingUsers } = useCollection<User>(useMemoFirebase(() => collection(firestore, 'users'), [firestore]));
+  const { data: allVehicles, isLoading: isLoadingVehicles } = useCollection<Vehicle>(useMemoFirebase(() => collection(firestore, 'vehicles'), [firestore]));
 
   // Memoized map for quick user lookup
   const userMap = useMemo(() => {
@@ -95,26 +97,36 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
     return query(q, where('status', 'in', visibleStatuses));
   }, [firestore, user, showOnlyUnclaimed, jobStatus]);
 
-  const { data: jobs, isLoading } = useCollection<Job>(jobsQuery, {
-    onDataChange: (newJobs) => {
-        toast({
-            title: "Job Board Updated",
-            description: "New job information is available.",
-        });
-    }
-  });
+  const { data: jobs, isLoading: isLoadingJobs } = useCollection<Job>(jobsQuery);
+  
+  const createLog = (jobId: string, activityType: string, description: string) => {
+    if(!user) return;
+    addDocumentNonBlocking(collection(firestore, "activity_logs"), {
+        jobId,
+        userId: user.id,
+        activityType,
+        description,
+        timestamp: serverTimestamp(),
+    });
+  }
 
-  const handleStatusChange = (jobId: string, status: JobStatus) => {
-    const jobRef = doc(firestore, 'jobs', jobId);
-    updateDocumentNonBlocking(jobRef, { status });
-    toast({ title: t('notifications.statusUpdated'), description: `Job #${jobId} is now ${status}` });
+  const handleStatusChange = (job: Job, status: JobStatus) => {
+    const jobRef = doc(firestore, 'jobs', job.id);
+    const updateData: any = { status };
+    if (status === 'Completed') {
+        updateData.completionDate = serverTimestamp();
+    }
+    updateDocumentNonBlocking(jobRef, updateData);
+    createLog(job.id, "Status Update", `Job status changed to ${status}`);
+    toast({ title: t('notifications.statusUpdated'), description: `Job #${job.id} is now ${status}` });
   };
 
-  const handleClaimJob = (jobId: string) => {
+  const handleClaimJob = (job: Job) => {
     if (!user) return;
-    const jobRef = doc(firestore, 'jobs', jobId);
+    const jobRef = doc(firestore, 'jobs', job.id);
     updateDocumentNonBlocking(jobRef, { supervisorId: user.id, status: 'Pending' });
-    toast({ title: t('notifications.jobClaimed'), description: `You have claimed Job #${jobId}` });
+    createLog(job.id, "Job Claimed", `Job claimed by supervisor ${user.name}`);
+    toast({ title: t('notifications.jobClaimed'), description: `You have claimed Job #${job.id}` });
   };
   
   const handleOpenAssignment = (job: Job) => {
@@ -126,6 +138,11 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
     setSelectedJob(job);
     setisSlipModalOpen(true);
   };
+  
+  const handleOpenHistory = (job: Job) => {
+    setSelectedJob(job);
+    setIsHistoryModalOpen(true);
+  }
 
   const handleAssign = (jobId: string, driverId: string, vehicleId: string) => {
     const jobRef = doc(firestore, 'jobs', jobId);
@@ -140,26 +157,32 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
       status: newStatus 
     });
 
+    const driverName = userMap.get(driverId)?.name || "Unknown";
+    const vehicleName = vehicleMap.get(vehicleId)?.name || "Unknown";
+    createLog(jobId, "Assignment", `Assigned to Driver: ${driverName}, Vehicle: ${vehicleName}`);
+    
     toast({ 
       title: t('notifications.jobAssigned'), 
       description: `Driver and vehicle assigned to Job #${jobId}` 
     });
   };
   
-  const handleReject = (jobId: string) => {
-    const jobRef = doc(firestore, 'jobs', jobId);
+  const handleReject = (job: Job) => {
+    const jobRef = doc(firestore, 'jobs', job.id);
     updateDocumentNonBlocking(jobRef, { status: 'Rejected' });
-    toast({ title: t('notifications.jobRejected'), variant: 'destructive', description: `Job #${jobId}` });
+    createLog(job.id, "Job Rejected", `Job was rejected.`);
+    toast({ title: t('notifications.jobRejected'), variant: 'destructive', description: `Job #${job.id}` });
   }
 
-  const handleArchive = (jobId: string) => {
-    const jobRef = doc(firestore, 'jobs', jobId);
+  const handleArchive = (job: Job) => {
+    const jobRef = doc(firestore, 'jobs', job.id);
     updateDocumentNonBlocking(jobRef, { status: 'Archived' });
+    createLog(job.id, "Job Archived", `Job was archived.`);
     toast({ title: 'Job Archived' });
   };
 
-  const handleDeletePermanent = (jobId: string) => {
-    const jobRef = doc(firestore, 'jobs', jobId);
+  const handleDeletePermanent = (job: Job) => {
+    const jobRef = doc(firestore, 'jobs', job.id);
     deleteDocumentNonBlocking(jobRef);
     toast({
       title: 'Job Deleted Permanently',
@@ -200,7 +223,7 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
     }
   };
   
-  if (isLoading) {
+  if (isLoadingJobs || isLoadingUsers || isLoadingVehicles) {
     return <div>Loading jobs...</div>
   }
 
@@ -211,8 +234,7 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
           <TableRow>
             <TableHead>{t('jobs.title')}</TableHead>
             <TableHead>Assignments</TableHead>
-            <TableHead>{t('jobs.destination')}</TableHead>
-            <TableHead>{t('jobs.date')}</TableHead>
+            <TableHead>Timeline</TableHead>
             <TableHead>{t('jobs.status')}</TableHead>
             <TableHead>
               <span className="sr-only">{t('jobs.actions')}</span>
@@ -224,8 +246,11 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
             <TableRow key={job.id}>
               <TableCell className="font-medium">
                 <div className="flex flex-col">
-                  <span>{job.title}</span>
+                  <span className="font-bold">{job.title}</span>
                   <span className="text-xs text-muted-foreground">
+                    {job.origin} to {job.destination}
+                  </span>
+                  <span className="text-xs text-muted-foreground mt-1">
                     {job.supervisorId ? `Sup: ${userMap.get(job.supervisorId)?.name || 'Unknown'}` : 'Unsupervised'}
                   </span>
                 </div>
@@ -246,8 +271,16 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
                     ) : <span className="text-muted-foreground">No vehicle</span>}
                  </div>
               </TableCell>
-              <TableCell>{job.destination}</TableCell>
-              <TableCell>{formatJobDate(job.date, job.time)}</TableCell>
+              <TableCell>
+                <div className="flex flex-col text-sm">
+                  <span>Due: {formatJobDate(job.date, job.time)}</span>
+                  {job.completionDate && (
+                    <span className="text-green-600">
+                      Completed: {format(job.completionDate.toDate(), 'PPpp')}
+                    </span>
+                  )}
+                </div>
+              </TableCell>
               <TableCell>
                 <Badge variant={getStatusBadgeVariant(job.status)}>{job.status}</Badge>
               </TableCell>
@@ -263,6 +296,12 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
                     <DropdownMenuContent align="end">
                         <DropdownMenuLabel>{t('jobs.actions')}</DropdownMenuLabel>
                         <DropdownMenuSeparator />
+                        {user?.role === 'Admin' && (
+                            <DropdownMenuItem onSelect={() => handleOpenHistory(job)}>
+                               <History className="mr-2 h-4 w-4" />
+                                View History
+                            </DropdownMenuItem>
+                        )}
                         {job.status === 'Completed' ? (
                           <DropdownMenuItem onSelect={() => handleOpenSlip(job)}>
                             <FileText className="mr-2 h-4 w-4" />
@@ -273,7 +312,7 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
                         )}
 
                         {user?.role === 'Supervisor' && job.status === 'Unclaimed' && (
-                            <DropdownMenuItem onClick={() => handleClaimJob(job.id)}>{t('jobs.claim')}</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleClaimJob(job)}>{t('jobs.claim')}</DropdownMenuItem>
                         )}
                         {user?.role === 'Admin' && (
                         <>
@@ -283,7 +322,7 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
                                 <CheckCircle className="mr-2 h-4 w-4" />
                                 {t('jobs.approveAndAssign')}
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleReject(job.id)} className="text-destructive">
+                                <DropdownMenuItem onClick={() => handleReject(job)} className="text-destructive">
                                 <XCircle className="mr-2 h-4 w-4" />
                                 {t('jobs.reject')}
                                 </DropdownMenuItem>
@@ -300,7 +339,7 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
                             {(job.status === 'Completed' || job.status === 'Rejected') && (
                             <>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => handleArchive(job.id)}>
+                                <DropdownMenuItem onClick={() => handleArchive(job)}>
                                 <Archive className="mr-2 h-4 w-4" />
                                 Archive
                                 </DropdownMenuItem>
@@ -324,12 +363,12 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
                             <DropdownMenuSubTrigger>{t('jobs.updateStatus')}</DropdownMenuSubTrigger>
                             <DropdownMenuSubContent>
                                 {job.status === 'Approved' && (
-                                <DropdownMenuItem onClick={() => handleStatusChange(job.id, 'In Transit')}>
+                                <DropdownMenuItem onClick={() => handleStatusChange(job, 'In Transit')}>
                                     {t('jobs.startTransit')}
                                 </DropdownMenuItem>
                                 )}
                                 {job.status === 'In Transit' && (
-                                <DropdownMenuItem onClick={() => handleStatusChange(job.id, 'Completed')}>
+                                <DropdownMenuItem onClick={() => handleStatusChange(job, 'Completed')}>
                                     {t('jobs.markComplete')}
                                 </DropdownMenuItem>
                                 )}
@@ -347,7 +386,7 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDeletePermanent(job.id)} className="bg-destructive hover:bg-destructive/90">
+                            <AlertDialogAction onClick={() => handleDeletePermanent(job)} className="bg-destructive hover:bg-destructive/90">
                                 Delete
                             </AlertDialogAction>
                         </AlertDialogFooter>
@@ -375,6 +414,14 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
           vehicle={vehicleMap.get(selectedJob.assignedVehicleId || "")}
           isOpen={isSlipModalOpen}
           onOpenChange={setisSlipModalOpen}
+        />
+      )}
+       {selectedJob && isHistoryModalOpen && (
+        <JobHistoryDialog
+            jobId={selectedJob.id}
+            isOpen={isHistoryModalOpen}
+            onOpenChange={setIsHistoryModalOpen}
+            userMap={userMap}
         />
       )}
     </>

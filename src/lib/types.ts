@@ -48,6 +48,7 @@ export interface Job {
   creatorId: string;
   creatorRole: UserRole;
   requestDate?: Timestamp;
+  completionDate?: Timestamp;
 }
 
 export interface ActivityLog {
@@ -56,4 +57,5 @@ export interface ActivityLog {
   userId: string;
   activityType: string;
   description: string;
+  jobId?: string;
 }

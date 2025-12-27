@@ -48,7 +48,7 @@ export function JobCreationForm() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!user) {
       toast({ title: "Error", description: "You must be logged in to create a job.", variant: "destructive"});
       return;
@@ -59,7 +59,7 @@ export function JobCreationForm() {
     // Determine the status based on the user's role
     const status = user.role === 'Admin' ? 'Unclaimed' : 'Pending';
 
-    addDocumentNonBlocking(jobsCollection, {
+    const newJobRef = await addDocumentNonBlocking(jobsCollection, {
       ...values,
       creatorId: user.id,
       creatorRole: user.role,
@@ -67,6 +67,16 @@ export function JobCreationForm() {
       status: status,
       requestDate: serverTimestamp(),
     })
+
+    if (newJobRef) {
+        addDocumentNonBlocking(collection(firestore, "activity_logs"), {
+            jobId: newJobRef.id,
+            userId: user.id,
+            activityType: "Job Creation",
+            description: `Job "${values.title}" created by ${user.name}`,
+            timestamp: serverTimestamp(),
+        });
+    }
 
     toast({
         title: t('notifications.jobCreated'),

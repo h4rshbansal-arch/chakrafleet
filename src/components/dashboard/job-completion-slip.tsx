@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Job, User, Vehicle } from "@/lib/types";
 import { format } from "date-fns";
-import { Truck, User as UserIcon, Calendar, MapPin, Hash, CheckCircle, FileText } from "lucide-react";
+import { Truck, User as UserIcon, Calendar, MapPin, Hash, CheckCircle, FileText, Clock } from "lucide-react";
 import React, { useRef } from "react";
 import { useReactToPrint } from "react-to-print";
 
@@ -60,7 +60,9 @@ export function JobCompletionSlip({ job, driver, vehicle, isOpen, onOpenChange }
                 <h2 className="text-3xl font-bold text-primary font-headline">EZTransport</h2>
                 <div className="text-right">
                     <p className="font-semibold">Job ID: {job.id}</p>
-                    <p className="text-sm text-gray-600">Completed on: {format(new Date(), 'PPpp')}</p>
+                    {job.completionDate && (
+                      <p className="text-sm text-gray-600">Completed on: {format(job.completionDate.toDate(), 'PPpp')}</p>
+                    )}
                 </div>
             </div>
             
@@ -75,7 +77,9 @@ export function JobCompletionSlip({ job, driver, vehicle, isOpen, onOpenChange }
                 <DetailRow icon={MapPin} label="Origin" value={job.origin} />
                 <DetailRow icon={MapPin} label="Destination" value={job.destination} />
                 <DetailRow icon={Calendar} label="Requested Date" value={job.requestDate ? format(job.requestDate.toDate(), 'PPpp') : 'N/A'} />
+                {job.completionDate && <DetailRow icon={Clock} label="Completion Date" value={job.completionDate ? format(job.completionDate.toDate(), 'PPpp') : 'N/A'} />}
                 <DetailRow icon={CheckCircle} label="Job Status" value={job.status} />
+                
 
                 <Separator className="md:col-span-2 my-2" />
 
