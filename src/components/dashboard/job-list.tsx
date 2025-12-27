@@ -20,16 +20,27 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuSubContent
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { MoreHorizontal, CheckCircle, XCircle, Truck, User as UserIcon, Archive, Search } from "lucide-react";
+import { MoreHorizontal, CheckCircle, XCircle, Truck, User as UserIcon, Archive, Search, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useLanguage } from "@/hooks/use-language";
 import { Job, JobStatus, User, Vehicle } from "@/lib/types";
 import { ManualAssignmentDialog } from "./manual-assignment-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { useCollection, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from "@/firebase";
+import { useCollection, useFirestore, useMemoFirebase, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { collection, query, where, doc } from "firebase/firestore";
 import { format } from "date-fns";
 
@@ -65,7 +76,7 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
     if (!user) return null;
     const q = collection(firestore, 'jobs');
     
-    const visibleStatuses: JobStatus[] = jobStatus || ['Pending', 'Approved', 'In Transit', 'Completed', 'Rejected', 'Unclaimed'];
+    const visibleStatuses: JobStatus[] = jobStatus || ['Pending', 'Approved', 'In Transit', 'Completed', 'Rejected', 'Unclaimed', 'Archived'];
 
     if (user.role === 'Supervisor') {
        if (showOnlyUnclaimed) {
@@ -86,7 +97,13 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
 
   const filteredJobs = useMemo(() => {
     if (!jobs) return [];
-    return jobs.filter(job =>
+    let displayJobs = jobs;
+    if (jobStatus) {
+        displayJobs = jobs.filter(j => jobStatus.includes(j.status));
+    }
+    if (!searchTerm) return displayJobs;
+    
+    return displayJobs.filter(job =>
       job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       job.destination.toLowerCase().includes(searchTerm.toLowerCase()) ||
       job.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -94,7 +111,7 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
       (userMap.get(job.assignedDriverId || "")?.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (vehicleMap.get(job.assignedVehicleId || "")?.name || "").toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [jobs, searchTerm, userMap, vehicleMap]);
+  }, [jobs, searchTerm, userMap, vehicleMap, jobStatus]);
 
 
   const handleStatusChange = (jobId: string, status: JobStatus) => {
@@ -131,6 +148,15 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
     const jobRef = doc(firestore, 'jobs', jobId);
     updateDocumentNonBlocking(jobRef, { status: 'Archived' });
     toast({ title: 'Job Archived' });
+  };
+
+  const handleDeletePermanent = (jobId: string) => {
+    const jobRef = doc(firestore, 'jobs', jobId);
+    deleteDocumentNonBlocking(jobRef);
+    toast({
+      title: 'Job Deleted Permanently',
+      variant: 'destructive'
+    });
   };
 
   const getStatusBadgeVariant = (status: JobStatus) => {
@@ -230,60 +256,87 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
                 <Badge variant={getStatusBadgeVariant(job.status)}>{job.status}</Badge>
               </TableCell>
               <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button aria-haspopup="true" size="icon" variant="ghost">
-                      <MoreHorizontal className="h-4 w-4" />
-                      <span className="sr-only">Toggle menu</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>{t('jobs.actions')}</DropdownMenuLabel>
-                    <DropdownMenuItem>{t('jobs.view')}</DropdownMenuItem>
-                     {user?.role === 'Supervisor' && job.status === 'Unclaimed' && (
-                        <DropdownMenuItem onClick={() => handleClaimJob(job.id)}>{t('jobs.claim')}</DropdownMenuItem>
-                    )}
-                    {user?.role === 'Admin' && (
-                      <>
-                        {(job.status === 'Pending' || job.status === 'Unclaimed') && (
-                           <>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => handleOpenManualAssign(job)}>
-                               <CheckCircle className="mr-2 h-4 w-4" />
-                               {t('jobs.approveAndAssign')}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleReject(job.id)} className="text-destructive">
-                               <XCircle className="mr-2 h-4 w-4" />
-                               {t('jobs.reject')}
-                            </DropdownMenuItem>
-                           </>
+                 <AlertDialog>
+                    <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button aria-haspopup="true" size="icon" variant="ghost">
+                        <MoreHorizontal className="h-4 w-4" />
+                        <span className="sr-only">Toggle menu</span>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>{t('jobs.actions')}</DropdownMenuLabel>
+                        <DropdownMenuItem>{t('jobs.view')}</DropdownMenuItem>
+                        {user?.role === 'Supervisor' && job.status === 'Unclaimed' && (
+                            <DropdownMenuItem onClick={() => handleClaimJob(job.id)}>{t('jobs.claim')}</DropdownMenuItem>
                         )}
-                        {(job.status === 'Completed' || job.status === 'Rejected') && (
-                          <>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => handleArchive(job.id)}>
-                              <Archive className="mr-2 h-4 w-4" />
-                              Archive
-                            </DropdownMenuItem>
-                          </>
+                        {user?.role === 'Admin' && (
+                        <>
+                            {(job.status === 'Pending' || job.status === 'Unclaimed') && (
+                            <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => handleOpenManualAssign(job)}>
+                                <CheckCircle className="mr-2 h-4 w-4" />
+                                {t('jobs.approveAndAssign')}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleReject(job.id)} className="text-destructive">
+                                <XCircle className="mr-2 h-4 w-4" />
+                                {t('jobs.reject')}
+                                </DropdownMenuItem>
+                            </>
+                            )}
+                            {(job.status === 'Completed' || job.status === 'Rejected') && (
+                            <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => handleArchive(job.id)}>
+                                <Archive className="mr-2 h-4 w-4" />
+                                Archive
+                                </DropdownMenuItem>
+                            </>
+                            )}
+                             {job.status === 'Archived' && (
+                                <>
+                                <DropdownMenuSeparator />
+                                 <AlertDialogTrigger asChild>
+                                    <DropdownMenuItem className="text-destructive">
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Delete Permanently
+                                    </DropdownMenuItem>
+                                 </AlertDialogTrigger>
+                                </>
+                            )}
+                        </>
                         )}
-                      </>
-                    )}
-                    {user?.role === 'Driver' && (job.status === 'Approved' || job.status === 'In Transit') && (
-                       <DropdownMenuSub>
-                          <DropdownMenuSubTrigger>{t('jobs.updateStatus')}</DropdownMenuSubTrigger>
-                          <DropdownMenuSubContent>
-                             <DropdownMenuItem onClick={() => handleStatusChange(job.id, 'In Transit')}>
-                                {t('jobs.startTransit')}
-                             </DropdownMenuItem>
-                             <DropdownMenuItem onClick={() => handleStatusChange(job.id, 'Completed')}>
-                                {t('jobs.markComplete')}
-                             </DropdownMenuItem>
-                          </DropdownMenuSubContent>
-                       </DropdownMenuSub>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                        {user?.role === 'Driver' && (job.status === 'Approved' || job.status === 'In Transit') && (
+                        <DropdownMenuSub>
+                            <DropdownMenuSubTrigger>{t('jobs.updateStatus')}</DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent>
+                                <DropdownMenuItem onClick={() => handleStatusChange(job.id, 'In Transit')}>
+                                    {t('jobs.startTransit')}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleStatusChange(job.id, 'Completed')}>
+                                    {t('jobs.markComplete')}
+                                </DropdownMenuItem>
+                            </DropdownMenuSubContent>
+                        </DropdownMenuSub>
+                        )}
+                    </DropdownMenuContent>
+                    </DropdownMenu>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This action cannot be undone. This will permanently delete the job from the database.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeletePermanent(job.id)} className="bg-destructive hover:bg-destructive/90">
+                                Delete
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                 </AlertDialog>
               </TableCell>
             </TableRow>
           ))}

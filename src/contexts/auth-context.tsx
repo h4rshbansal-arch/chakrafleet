@@ -9,7 +9,7 @@ import {
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword
 } from "firebase/auth";
-import { doc, getDoc, Firestore, onSnapshot, collection, getDocs, query, setDoc } from "firebase/firestore";
+import { doc, getDoc, Firestore, onSnapshot, collection, getDocs, query, setDoc, updateDoc } from "firebase/firestore";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 
 interface UserProfile {
@@ -31,6 +31,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string, role: UserRole, options?: SignupOptions) => Promise<void>;
   logout: () => void;
+  updateUserProfile: (userId: string, data: Partial<UserProfile>) => Promise<void>;
   isAuthenticated: boolean;
   isUserLoading: boolean;
 }
@@ -79,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    if (firestore && auth) {
+    if (firestore && auth && process.env.NODE_ENV === 'development') {
       seedInitialAdmin(firestore, auth);
     }
   }, [firestore, auth]);
@@ -90,25 +91,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [firebaseUser, firestore]);
 
   useEffect(() => {
-    if (!userDocRef) {
+    if (isFirebaseUserLoading) {
+        setProfileLoading(true);
+        return;
+    }
+    if (!firebaseUser) {
       setUserProfile(null);
       setProfileLoading(false);
       return;
     }
     
+    // At this point, firebaseUser is loaded. Now we fetch profile.
     setProfileLoading(true);
-    const sub = onSnapshot(userDocRef, (doc) => {
+    const unsub = onSnapshot(doc(firestore, "users", firebaseUser.uid), (doc) => {
       if (doc.exists()) {
         setUserProfile({ id: doc.id, ...doc.data() } as UserProfile);
       } else {
+        // This case might happen if the user record in Firestore is deleted
+        // but the auth record still exists. We treat them as not fully logged in.
         setUserProfile(null);
       }
       setProfileLoading(false);
-    }, () => setProfileLoading(false));
+    }, (error) => {
+      console.error("Error fetching user profile:", error);
+      setUserProfile(null);
+      setProfileLoading(false);
+    });
 
-    return () => sub();
+    return () => unsub();
 
-  }, [userDocRef]);
+  }, [firebaseUser, isFirebaseUserLoading, firestore]);
   
   const login = async (email: string, password: string) => {
     await signInWithEmailAndPassword(auth, email, password);
@@ -123,17 +135,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const logout = () => {
-    auth.signOut();
-    setUserProfile(null);
+  const logout = async () => {
+    await auth.signOut();
+    setUserProfile(null); // Clear local profile state
     router.push("/login");
   };
+
+  const updateUserProfile = async (userId: string, data: Partial<UserProfile>) => {
+    const userRef = doc(firestore, "users", userId);
+    await updateDoc(userRef, data);
+  };
+
 
   const isUserLoading = isFirebaseUserLoading || isProfileLoading;
   const isAuthenticated = !isUserLoading && !!firebaseUser && !!userProfile;
 
   return (
-    <AuthContext.Provider value={{ user: userProfile, firebaseUser, login, signup, logout, isAuthenticated, isUserLoading, auth }}>
+    <AuthContext.Provider value={{ user: userProfile, firebaseUser, login, signup, logout, isAuthenticated, isUserLoading, auth, updateUserProfile }}>
       {children}
     </AuthContext.Provider>
   );
