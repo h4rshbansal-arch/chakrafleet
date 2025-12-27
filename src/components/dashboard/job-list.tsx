@@ -34,7 +34,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { MoreHorizontal, CheckCircle, XCircle, Truck, User as UserIcon, Archive, Search, Trash2 } from "lucide-react";
+import { MoreHorizontal, CheckCircle, XCircle, Truck, User as UserIcon, Archive, Trash2, Replace, FileText } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useLanguage } from "@/hooks/use-language";
 import { Job, JobStatus, User, Vehicle } from "@/lib/types";
@@ -43,6 +43,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCollection, useFirestore, useMemoFirebase, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { collection, query, where, doc } from "firebase/firestore";
 import { format } from "date-fns";
+import { JobCompletionSlip } from "./job-completion-slip";
 
 interface JobListProps {
   showOnlyUnclaimed?: boolean;
@@ -56,7 +57,7 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
   const firestore = useFirestore();
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [isSlipModalOpen, setisSlipModalOpen] = useState(false);
 
   const { data: allUsers } = useCollection<User>(useMemoFirebase(() => collection(firestore, 'users'), [firestore]));
   const { data: allVehicles } = useCollection<Vehicle>(useMemoFirebase(() => collection(firestore, 'vehicles'), [firestore]));
@@ -103,21 +104,6 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
     }
   });
 
-  const filteredJobs = useMemo(() => {
-    if (!jobs) return [];
-    if (!searchTerm) return jobs;
-    
-    return jobs.filter(job =>
-      job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.destination.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (userMap.get(job.supervisorId || "")?.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (userMap.get(job.assignedDriverId || "")?.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (vehicleMap.get(job.assignedVehicleId || "")?.name || "").toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [jobs, searchTerm, userMap, vehicleMap]);
-
-
   const handleStatusChange = (jobId: string, status: JobStatus) => {
     const jobRef = doc(firestore, 'jobs', jobId);
     updateDocumentNonBlocking(jobRef, { status });
@@ -131,15 +117,33 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
     toast({ title: t('notifications.jobClaimed'), description: `You have claimed Job #${jobId}` });
   };
   
-  const handleOpenManualAssign = (job: Job) => {
+  const handleOpenAssignment = (job: Job) => {
     setSelectedJob(job);
     setIsAssignmentModalOpen(true);
   };
   
+  const handleOpenSlip = (job: Job) => {
+    setSelectedJob(job);
+    setisSlipModalOpen(true);
+  };
+
   const handleAssign = (jobId: string, driverId: string, vehicleId: string) => {
     const jobRef = doc(firestore, 'jobs', jobId);
-    updateDocumentNonBlocking(jobRef, { assignedDriverId: driverId, assignedVehicleId: vehicleId, status: 'Approved' });
-    toast({ title: t('notifications.jobAssigned'), description: `Driver and vehicle assigned to Job #${jobId}` });
+    const currentJob = jobs?.find(j => j.id === jobId);
+
+    // If the job is already approved, we are just changing the assignment, so we don't change the status
+    const newStatus = currentJob?.status === 'Approved' ? 'Approved' : 'Approved';
+
+    updateDocumentNonBlocking(jobRef, { 
+      assignedDriverId: driverId, 
+      assignedVehicleId: vehicleId, 
+      status: newStatus 
+    });
+
+    toast({ 
+      title: t('notifications.jobAssigned'), 
+      description: `Driver and vehicle assigned to Job #${jobId}` 
+    });
   };
   
   const handleReject = (jobId: string) => {
@@ -202,18 +206,6 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
 
   return (
     <>
-      <div className="mb-4">
-        <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-            type="search"
-            placeholder="Search jobs by title, destination, status..."
-            className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[320px]"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            />
-        </div>
-      </div>
       <Table>
         <TableHeader>
           <TableRow>
@@ -228,7 +220,7 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filteredJobs.map((job) => (
+          {jobs && jobs.map((job) => (
             <TableRow key={job.id}>
               <TableCell className="font-medium">
                 <div className="flex flex-col">
@@ -270,7 +262,16 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                         <DropdownMenuLabel>{t('jobs.actions')}</DropdownMenuLabel>
-                        <DropdownMenuItem>{t('jobs.view')}</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        {job.status === 'Completed' ? (
+                          <DropdownMenuItem onSelect={() => handleOpenSlip(job)}>
+                            <FileText className="mr-2 h-4 w-4" />
+                            View Slip
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem>{t('jobs.view')}</DropdownMenuItem>
+                        )}
+
                         {user?.role === 'Supervisor' && job.status === 'Unclaimed' && (
                             <DropdownMenuItem onClick={() => handleClaimJob(job.id)}>{t('jobs.claim')}</DropdownMenuItem>
                         )}
@@ -278,8 +279,7 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
                         <>
                             {(job.status === 'Pending' || job.status === 'Unclaimed') && (
                             <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => handleOpenManualAssign(job)}>
+                                <DropdownMenuItem onClick={() => handleOpenAssignment(job)}>
                                 <CheckCircle className="mr-2 h-4 w-4" />
                                 {t('jobs.approveAndAssign')}
                                 </DropdownMenuItem>
@@ -289,6 +289,14 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
                                 </DropdownMenuItem>
                             </>
                             )}
+
+                            {job.status === 'Approved' && (
+                                <DropdownMenuItem onClick={() => handleOpenAssignment(job)}>
+                                <Replace className="mr-2 h-4 w-4" />
+                                Change Assignment
+                                </DropdownMenuItem>
+                            )}
+
                             {(job.status === 'Completed' || job.status === 'Rejected') && (
                             <>
                                 <DropdownMenuSeparator />
@@ -315,12 +323,16 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
                         <DropdownMenuSub>
                             <DropdownMenuSubTrigger>{t('jobs.updateStatus')}</DropdownMenuSubTrigger>
                             <DropdownMenuSubContent>
+                                {job.status === 'Approved' && (
                                 <DropdownMenuItem onClick={() => handleStatusChange(job.id, 'In Transit')}>
                                     {t('jobs.startTransit')}
                                 </DropdownMenuItem>
+                                )}
+                                {job.status === 'In Transit' && (
                                 <DropdownMenuItem onClick={() => handleStatusChange(job.id, 'Completed')}>
                                     {t('jobs.markComplete')}
                                 </DropdownMenuItem>
+                                )}
                             </DropdownMenuSubContent>
                         </DropdownMenuSub>
                         )}
@@ -352,9 +364,18 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
             isOpen={isAssignmentModalOpen}
             onOpenChange={setIsAssignmentModalOpen}
             onAssign={handleAssign}
-            availableDrivers={allUsers.filter(u => u.role === 'Driver')}
-            availableVehicles={allVehicles}
+            availableDrivers={allUsers.filter(u => u.role === 'Driver' && u.availability)}
+            availableVehicles={allVehicles.filter(v => v.status === 'available')}
          />
+      )}
+      {selectedJob && isSlipModalOpen && allUsers && allVehicles && (
+        <JobCompletionSlip
+          job={selectedJob}
+          driver={userMap.get(selectedJob.assignedDriverId || "")}
+          vehicle={vehicleMap.get(selectedJob.assignedVehicleId || "")}
+          isOpen={isSlipModalOpen}
+          onOpenChange={setisSlipModalOpen}
+        />
       )}
     </>
   );
