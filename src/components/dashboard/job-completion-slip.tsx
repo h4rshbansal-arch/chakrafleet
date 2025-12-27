@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -44,7 +45,7 @@ export function JobCompletionSlip({ job, driver, vehicle, isOpen, onOpenChange }
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 font-headline text-xl">
               <FileText />
@@ -95,9 +96,11 @@ export function JobCompletionSlip({ job, driver, vehicle, isOpen, onOpenChange }
 
           <DialogFooter>
             <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
-            <Button onClick={handlePrint}>
-              Print Slip
-            </Button>
+            <div onClick={handlePrint}>
+              <Button>
+                Print Slip
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
