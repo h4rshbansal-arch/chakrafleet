@@ -21,7 +21,7 @@ export function Header() {
             className="group flex items-center justify-center gap-2"
           >
             <Logo className="h-6 w-6 text-primary transition-all group-hover:scale-110" />
-            {!isMobile && <span className="font-headline text-lg font-bold text-primary">EZTransport</span>}
+            {!isMobile && <span className="font-headline text-lg font-bold text-primary">ChakraFleet</span>}
           </Link>
       
       <div className="ml-auto flex items-center gap-2">

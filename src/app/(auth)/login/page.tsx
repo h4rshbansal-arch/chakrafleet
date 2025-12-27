@@ -6,7 +6,7 @@ export default function LoginPage() {
   return (
     <Card className="shadow-2xl">
       <CardHeader className="p-8 pb-4 text-center">
-        <CardTitle className="font-headline text-3xl">Welcome to EZTransport</CardTitle>
+        <CardTitle className="font-headline text-3xl">Welcome to ChakraFleet</CardTitle>
         <CardDescription>Enter your credentials to access your account.</CardDescription>
       </CardHeader>
       <CardContent className="p-8 pt-0">

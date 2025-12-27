@@ -10,8 +10,8 @@ import { useToast } from '@/hooks/use-toast';
 export function LoginForm() {
   const { login } = useAuth();
   const { toast } = useToast();
-  const [email, setEmail] = useState('ishwar@stoneman.com');
-  const [password, setPassword] = useState('ishwar@121');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {

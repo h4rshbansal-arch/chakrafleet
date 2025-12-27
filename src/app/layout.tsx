@@ -7,7 +7,7 @@ import Script from "next/script";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "EZTransport",
+  title: "ChakraFleet",
   description: "Efficient Transport Management System",
 };
 

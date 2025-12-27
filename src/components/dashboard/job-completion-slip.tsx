@@ -53,7 +53,7 @@ export function JobCompletionSlip({ job, driver, vehicle, isOpen, onOpenChange }
           
           <div ref={componentRef} className="p-4 bg-white rounded-lg text-black">
              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold text-primary font-headline">EZTransport</h2>
+                <h2 className="text-2xl font-bold text-primary font-headline">ChakraFleet</h2>
                 <div className="text-right text-xs">
                     <p className="font-semibold">Job ID: {job.id}</p>
                     {job.completionDate && (
@@ -84,8 +84,8 @@ export function JobCompletionSlip({ job, driver, vehicle, isOpen, onOpenChange }
             </div>
 
             <div className="mt-8 text-center text-xs text-gray-500">
-                <p>Thank you for using EZTransport.</p>
-                <p>&copy; {new Date().getFullYear()} EZTransport. All rights reserved.</p>
+                <p>Thank you for using ChakraFleet.</p>
+                <p>&copy; {new Date().getFullYear()} ChakraFleet. All rights reserved.</p>
             </div>
           </div>
 
