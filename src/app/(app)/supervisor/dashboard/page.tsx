@@ -40,7 +40,7 @@ function SupervisorDashboardContent() {
                     <CardDescription>
                         Jobs created by an Admin that are available to be claimed.
                     </CardDescription>
-                </Header>
+                </CardHeader>
                 <CardContent>
                     <JobList showOnlyUnclaimed={true} />
                 </CardContent>
