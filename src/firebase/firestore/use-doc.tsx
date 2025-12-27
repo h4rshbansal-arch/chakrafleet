@@ -10,6 +10,7 @@ import {
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { useNotificationSound } from '@/hooks/use-notification-sound';
 
 /** Utility type to add an 'id' field to a given type T. */
 type WithId<T> = T & { id: string };
@@ -46,12 +47,15 @@ export function useDoc<T = any>(
   const [data, setData] = useState<StateDataType>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const playSound = useNotificationSound();
 
   useEffect(() => {
     if (!memoizedDocRef) {
       setData(null);
       setIsLoading(false);
       setError(null);
+      setIsInitialLoad(true);
       return;
     }
 
@@ -70,6 +74,11 @@ export function useDoc<T = any>(
         }
         setError(null); // Clear any previous error on successful snapshot (even if doc doesn't exist)
         setIsLoading(false);
+
+        if (!isInitialLoad) {
+          playSound();
+        }
+        setIsInitialLoad(false);
       },
       (error: FirestoreError) => {
         const contextualError = new FirestorePermissionError({
@@ -86,8 +95,11 @@ export function useDoc<T = any>(
       }
     );
 
-    return () => unsubscribe();
-  }, [memoizedDocRef]); // Re-run if the memoizedDocRef changes.
+    return () => {
+      unsubscribe();
+      setIsInitialLoad(true);
+    };
+  }, [memoizedDocRef, playSound]); // Re-run if the memoizedDocRef changes.
 
   return { data, isLoading, error };
 }

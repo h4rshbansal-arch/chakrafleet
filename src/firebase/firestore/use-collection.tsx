@@ -11,6 +11,7 @@ import {
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { useNotificationSound } from '@/hooks/use-notification-sound';
 
 /** Utility type to add an 'id' field to a given type T. */
 export type WithId<T> = T & { id: string };
@@ -60,12 +61,15 @@ export function useCollection<T = any>(
   const [data, setData] = useState<StateDataType>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const playSound = useNotificationSound();
 
   useEffect(() => {
     if (!memoizedTargetRefOrQuery) {
       setData(null);
       setIsLoading(false);
       setError(null);
+      setIsInitialLoad(true);
       return;
     }
 
@@ -83,6 +87,11 @@ export function useCollection<T = any>(
         setData(results);
         setError(null);
         setIsLoading(false);
+        
+        if (!isInitialLoad) {
+          playSound();
+        }
+        setIsInitialLoad(false);
       },
       (error: FirestoreError) => {
         // This logic extracts the path from either a ref or a query
@@ -105,8 +114,12 @@ export function useCollection<T = any>(
       }
     );
 
-    return () => unsubscribe();
-  }, [memoizedTargetRefOrQuery]); // Re-run if the target query/reference changes.
+    return () => {
+      unsubscribe();
+      setIsInitialLoad(true);
+    }
+  }, [memoizedTargetRefOrQuery, playSound]); // Re-run if the target query/reference changes.
+
   if(memoizedTargetRefOrQuery && !memoizedTargetRefOrQuery.__memo) {
     throw new Error(memoizedTargetRefOrQuery + ' was not properly memoized using useMemoFirebase');
   }
