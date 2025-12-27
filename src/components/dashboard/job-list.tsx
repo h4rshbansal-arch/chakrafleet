@@ -22,11 +22,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MoreHorizontal, CheckCircle, XCircle, Truck, User as UserIcon, Lightbulb } from "lucide-react";
+import { MoreHorizontal, CheckCircle, XCircle, Truck, User as UserIcon, Archive } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useLanguage } from "@/hooks/use-language";
 import { Job, JobStatus, User, Vehicle } from "@/lib/types";
-import { AiSuggestionTool } from "./ai-suggestion-tool";
+import { ManualAssignmentDialog } from "./manual-assignment-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useCollection, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from "@/firebase";
 import { collection, query, where, doc, or } from "firebase/firestore";
@@ -42,7 +42,7 @@ export function JobList({ showOnlyUnclaimed = false }: JobListProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
-  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+  const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
 
   const { data: allUsers } = useCollection<User>(useMemoFirebase(() => collection(firestore, 'users'), [firestore]));
   const { data: allVehicles } = useCollection<Vehicle>(useMemoFirebase(() => collection(firestore, 'vehicles'), [firestore]));
@@ -62,19 +62,21 @@ export function JobList({ showOnlyUnclaimed = false }: JobListProps) {
     if (!user) return null;
     const q = collection(firestore, 'jobs');
     
+    const visibleStatuses: JobStatus[] = ['Pending', 'Approved', 'In Transit', 'Completed', 'Rejected', 'Unclaimed'];
+
     if (user.role === 'Supervisor') {
        if (showOnlyUnclaimed) {
          // Show only unclaimed jobs created by Admins
          return query(q, where('status', '==', 'Unclaimed'));
        }
        // Supervisors see jobs they've created OR claimed
-       return query(q, where('supervisorId', '==', user.id));
+       return query(q, where('supervisorId', '==', user.id), where('status', 'in', visibleStatuses));
     }
     if (user.role === 'Driver') {
-      return query(q, where('assignedDriverId', '==', user.id));
+      return query(q, where('assignedDriverId', '==', user.id), where('status', 'in', visibleStatuses));
     }
-    // Admin sees all jobs
-    return query(q);
+    // Admin sees all non-archived jobs
+    return query(q, where('status', 'in', visibleStatuses));
   }, [firestore, user, showOnlyUnclaimed]);
 
   const { data: jobs, isLoading } = useCollection<Job>(jobsQuery);
@@ -92,9 +94,9 @@ export function JobList({ showOnlyUnclaimed = false }: JobListProps) {
     toast({ title: t('notifications.jobClaimed'), description: `You have claimed Job #${jobId}` });
   };
   
-  const handleAiSuggest = (job: Job) => {
+  const handleOpenManualAssign = (job: Job) => {
     setSelectedJob(job);
-    setIsAiModalOpen(true);
+    setIsAssignmentModalOpen(true);
   };
   
   const handleAssign = (jobId: string, driverId: string, vehicleId: string) => {
@@ -109,6 +111,12 @@ export function JobList({ showOnlyUnclaimed = false }: JobListProps) {
     toast({ title: t('notifications.jobRejected'), variant: 'destructive', description: `Job #${jobId}` });
   }
 
+  const handleArchive = (jobId: string) => {
+    const jobRef = doc(firestore, 'jobs', jobId);
+    updateDocumentNonBlocking(jobRef, { status: 'Archived' });
+    toast({ title: 'Job Archived' });
+  };
+
   const getStatusBadgeVariant = (status: JobStatus) => {
     switch (status) {
       case "Completed":
@@ -120,6 +128,7 @@ export function JobList({ showOnlyUnclaimed = false }: JobListProps) {
       case "Pending":
         return "outline";
       case "Rejected":
+      case "Archived":
         return "destructive";
       default:
         return "outline";
@@ -207,17 +216,30 @@ export function JobList({ showOnlyUnclaimed = false }: JobListProps) {
                      {user?.role === 'Supervisor' && job.status === 'Unclaimed' && (
                         <DropdownMenuItem onClick={() => handleClaimJob(job.id)}>{t('jobs.claim')}</DropdownMenuItem>
                     )}
-                    {user?.role === 'Admin' && (job.status === 'Pending' || job.status === 'Unclaimed') && (
+                    {user?.role === 'Admin' && (
                       <>
-                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleAiSuggest(job)}>
-                           <Lightbulb className="mr-2 h-4 w-4" />
-                           {t('jobs.approveAndAssign')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleReject(job.id)} className="text-destructive">
-                           <XCircle className="mr-2 h-4 w-4" />
-                           {t('jobs.reject')}
-                        </DropdownMenuItem>
+                        {(job.status === 'Pending' || job.status === 'Unclaimed') && (
+                           <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleOpenManualAssign(job)}>
+                               <CheckCircle className="mr-2 h-4 w-4" />
+                               {t('jobs.approveAndAssign')}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleReject(job.id)} className="text-destructive">
+                               <XCircle className="mr-2 h-4 w-4" />
+                               {t('jobs.reject')}
+                            </DropdownMenuItem>
+                           </>
+                        )}
+                        {(job.status === 'Completed' || job.status === 'Rejected') && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleArchive(job.id)}>
+                              <Archive className="mr-2 h-4 w-4" />
+                              Archive
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </>
                     )}
                     {user?.role === 'Driver' && (job.status === 'Approved' || job.status === 'In Transit') && (
@@ -241,10 +263,10 @@ export function JobList({ showOnlyUnclaimed = false }: JobListProps) {
         </TableBody>
       </Table>
       {selectedJob && allUsers && allVehicles && (
-         <AiSuggestionTool 
+         <ManualAssignmentDialog 
             job={selectedJob}
-            isOpen={isAiModalOpen}
-            onOpenChange={setIsAiModalOpen}
+            isOpen={isAssignmentModalOpen}
+            onOpenChange={setIsAssignmentModalOpen}
             onAssign={handleAssign}
             availableDrivers={allUsers.filter(u => u.role === 'Driver')}
             availableVehicles={allVehicles}
