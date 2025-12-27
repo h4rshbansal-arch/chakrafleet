@@ -15,7 +15,7 @@ function SupervisorDashboardContent() {
     <div className="space-y-8">
       <AnalyticsCards />
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid h-auto w-full grid-cols-1 sm:w-auto sm:grid-cols-3">
+        <TabsList className="grid h-auto w-full grid-cols-1 md:w-auto md:grid-cols-3">
           <TabsTrigger value="my-jobs"><List className="mr-2 h-4 w-4" /> My Jobs</TabsTrigger>
           <TabsTrigger value="available-jobs"><FileCheck className="mr-2 h-4 w-4" /> Available Jobs</TabsTrigger>
           <TabsTrigger value="create-job"><FilePlus className="mr-2 h-4 w-4" /> Create Job</TabsTrigger>
@@ -40,7 +40,7 @@ function SupervisorDashboardContent() {
                     <CardDescription>
                         Jobs created by an Admin that are available to be claimed.
                     </CardDescription>
-                </CardHeader>
+                </Header>
                 <CardContent>
                     <JobList showOnlyUnclaimed={true} />
                 </CardContent>
