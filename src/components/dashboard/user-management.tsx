@@ -38,13 +38,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useLanguage } from "@/hooks/use-language";
-import { useCollection, useFirestore, useMemoFirebase, deleteDocumentNonBlocking } from "@/firebase";
+import { useCollection, useFirestore, useMemoFirebase, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
 import { User } from "@/lib/types";
-import { PlusCircle, MoreHorizontal, Trash2 } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Trash2, CheckCircle, XCircle } from "lucide-react";
 import { RegistrationForm } from "@/components/auth/registration-form";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
+import { Badge } from "@/components/ui/badge";
 
 export function UserManagement() {
   const { t } = useLanguage();
@@ -83,6 +84,16 @@ export function UserManagement() {
     // A cloud function would be needed for a complete deletion.
   };
 
+  const handleToggleAvailability = (user: User) => {
+    const newAvailability = !(user.availability ?? false);
+    const userRef = doc(firestore, 'users', user.id);
+    updateDocumentNonBlocking(userRef, { availability: newAvailability });
+    toast({
+      title: "Driver Status Updated",
+      description: `${user.name} is now marked as ${newAvailability ? 'available' : 'unavailable'}.`,
+    });
+  };
+
   if (isLoading) {
     return <div>Loading users...</div>
   }
@@ -111,6 +122,7 @@ export function UserManagement() {
             <TableHead>{t('users.name')}</TableHead>
             <TableHead>{t('users.email')}</TableHead>
             <TableHead>{t('users.role')}</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead><span className="sr-only">Actions</span></TableHead>
           </TableRow>
         </TableHeader>
@@ -129,6 +141,13 @@ export function UserManagement() {
               <TableCell>{user.email}</TableCell>
               <TableCell>{user.role}</TableCell>
               <TableCell>
+                {user.role === 'Driver' && (
+                  <Badge variant={user.availability ? 'secondary' : 'destructive'}>
+                    {user.availability ? 'Available' : 'Unavailable'}
+                  </Badge>
+                )}
+              </TableCell>
+              <TableCell>
                 <AlertDialog>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -139,6 +158,16 @@ export function UserManagement() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>{t('jobs.actions')}</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                       {user.role === 'Driver' && (
+                        <DropdownMenuItem onClick={() => handleToggleAvailability(user)}>
+                          {user.availability ? (
+                            <><XCircle className="mr-2 h-4 w-4" /> Mark as Absent</>
+                          ) : (
+                            <><CheckCircle className="mr-2 h-4 w-4" /> Mark as Present</>
+                          )}
+                        </DropdownMenuItem>
+                      )}
                       <AlertDialogTrigger asChild>
                         <DropdownMenuItem className="text-destructive">
                           <Trash2 className="mr-2 h-4 w-4" />
