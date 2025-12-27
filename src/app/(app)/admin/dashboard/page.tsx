@@ -6,7 +6,7 @@ import { UserManagement } from "@/components/dashboard/user-management";
 import { VehicleManagement } from "@/components/dashboard/vehicle-management";
 import { ActivityLog } from "@/components/dashboard/activity-log";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, Users, Truck, FileText, PlusCircle } from "lucide-react";
+import { Package, Users, Truck, FileText, PlusCircle, Archive } from "lucide-react";
 import { DashboardProvider, useDashboard } from "@/contexts/dashboard-context";
 import { JobCreationForm } from "@/components/dashboard/job-creation-form";
 
@@ -17,15 +17,16 @@ function AdminDashboardContent() {
     <div className="space-y-8">
       <AnalyticsCards />
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid h-auto w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+        <TabsList className="grid h-auto w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
           <TabsTrigger value="jobs"><Package className="mr-2 h-4 w-4" /> Job Requests</TabsTrigger>
           <TabsTrigger value="create-job"><PlusCircle className="mr-2 h-4 w-4" /> Create Job</TabsTrigger>
+          <TabsTrigger value="archived"><Archive className="mr-2 h-4 w-4" /> Archived Jobs</TabsTrigger>
           <TabsTrigger value="users"><Users className="mr-2 h-4 w-4" /> User Management</TabsTrigger>
           <TabsTrigger value="vehicles"><Truck className="mr-2 h-4 w-4" /> Vehicle Management</TabsTrigger>
           <TabsTrigger value="logs"><FileText className="mr-2 h-4 w-4" /> Activity Log</TabsTrigger>
         </TabsList>
         <TabsContent value="jobs">
-          <JobList />
+          <JobList jobStatus={['Pending', 'Approved', 'In Transit', 'Completed', 'Rejected', 'Unclaimed']} />
         </TabsContent>
         <TabsContent value="create-job">
            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
@@ -33,6 +34,9 @@ function AdminDashboardContent() {
               <JobCreationForm />
             </div>
           </div>
+        </TabsContent>
+         <TabsContent value="archived">
+          <JobList jobStatus={['Archived']} />
         </TabsContent>
         <TabsContent value="users">
           <UserManagement />

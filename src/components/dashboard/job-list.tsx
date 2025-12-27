@@ -22,27 +22,30 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MoreHorizontal, CheckCircle, XCircle, Truck, User as UserIcon, Archive } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { MoreHorizontal, CheckCircle, XCircle, Truck, User as UserIcon, Archive, Search } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useLanguage } from "@/hooks/use-language";
 import { Job, JobStatus, User, Vehicle } from "@/lib/types";
 import { ManualAssignmentDialog } from "./manual-assignment-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useCollection, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from "@/firebase";
-import { collection, query, where, doc, or } from "firebase/firestore";
+import { collection, query, where, doc } from "firebase/firestore";
 import { format } from "date-fns";
 
 interface JobListProps {
   showOnlyUnclaimed?: boolean;
+  jobStatus?: JobStatus[];
 }
 
-export function JobList({ showOnlyUnclaimed = false }: JobListProps) {
+export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) {
   const { user } = useAuth();
   const { t } = useLanguage();
   const { toast } = useToast();
   const firestore = useFirestore();
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const { data: allUsers } = useCollection<User>(useMemoFirebase(() => collection(firestore, 'users'), [firestore]));
   const { data: allVehicles } = useCollection<Vehicle>(useMemoFirebase(() => collection(firestore, 'vehicles'), [firestore]));
@@ -62,7 +65,7 @@ export function JobList({ showOnlyUnclaimed = false }: JobListProps) {
     if (!user) return null;
     const q = collection(firestore, 'jobs');
     
-    const visibleStatuses: JobStatus[] = ['Pending', 'Approved', 'In Transit', 'Completed', 'Rejected', 'Unclaimed'];
+    const visibleStatuses: JobStatus[] = jobStatus || ['Pending', 'Approved', 'In Transit', 'Completed', 'Rejected', 'Unclaimed'];
 
     if (user.role === 'Supervisor') {
        if (showOnlyUnclaimed) {
@@ -75,11 +78,24 @@ export function JobList({ showOnlyUnclaimed = false }: JobListProps) {
     if (user.role === 'Driver') {
       return query(q, where('assignedDriverId', '==', user.id), where('status', 'in', visibleStatuses));
     }
-    // Admin sees all non-archived jobs
+    // Admin sees jobs based on status filter
     return query(q, where('status', 'in', visibleStatuses));
-  }, [firestore, user, showOnlyUnclaimed]);
+  }, [firestore, user, showOnlyUnclaimed, jobStatus]);
 
   const { data: jobs, isLoading } = useCollection<Job>(jobsQuery);
+
+  const filteredJobs = useMemo(() => {
+    if (!jobs) return [];
+    return jobs.filter(job =>
+      job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.destination.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (userMap.get(job.supervisorId || "")?.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (userMap.get(job.assignedDriverId || "")?.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (vehicleMap.get(job.assignedVehicleId || "")?.name || "").toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [jobs, searchTerm, userMap, vehicleMap]);
+
 
   const handleStatusChange = (jobId: string, status: JobStatus) => {
     const jobRef = doc(firestore, 'jobs', jobId);
@@ -135,10 +151,6 @@ export function JobList({ showOnlyUnclaimed = false }: JobListProps) {
     }
   };
 
-  if (isLoading) {
-    return <div>Loading jobs...</div>
-  }
-
   const formatJobDate = (dateString: string, timeString?: string) => {
     try {
       if (!timeString) {
@@ -153,10 +165,25 @@ export function JobList({ showOnlyUnclaimed = false }: JobListProps) {
       return dateString;
     }
   };
-
+  
+  if (isLoading) {
+    return <div>Loading jobs...</div>
+  }
 
   return (
     <>
+      <div className="mb-4">
+        <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+            type="search"
+            placeholder="Search jobs by title, destination, status..."
+            className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[320px]"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            />
+        </div>
+      </div>
       <Table>
         <TableHeader>
           <TableRow>
@@ -171,7 +198,7 @@ export function JobList({ showOnlyUnclaimed = false }: JobListProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {jobs && jobs.map((job) => (
+          {filteredJobs.map((job) => (
             <TableRow key={job.id}>
               <TableCell className="font-medium">
                 <div className="flex flex-col">

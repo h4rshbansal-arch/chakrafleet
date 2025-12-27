@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -40,9 +40,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useLanguage } from "@/hooks/use-language";
 import { Vehicle, VehicleStatus, VehicleTypeDefinition } from "@/lib/types";
-import { Truck, Car, Bike, PlusCircle, MoreHorizontal, Trash2, Settings, CheckCircle, Clock, Wrench } from 'lucide-react';
+import { Truck, Car, Bike, PlusCircle, MoreHorizontal, Trash2, Settings, CheckCircle, Clock, Wrench, Search } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
 import { VehicleCreationForm } from "./vehicle-creation-form";
@@ -55,10 +56,21 @@ export function VehicleManagement() {
   const { toast } = useToast();
   const [isAddVehicleDialogOpen, setIsAddVehicleDialogOpen] = useState(false);
   const [isManageTypesDialogOpen, setIsManageTypesDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   
   const vehiclesQuery = useMemoFirebase(() => collection(firestore, 'vehicles'), [firestore]);
   const { data: vehicles, isLoading } = useCollection<Vehicle>(vehiclesQuery);
   const { data: vehicleTypes } = useCollection<VehicleTypeDefinition>(useMemoFirebase(() => collection(firestore, 'vehicle_types'), [firestore]));
+
+  const filteredVehicles = useMemo(() => {
+    if (!vehicles) return [];
+    return vehicles.filter(vehicle =>
+        vehicle.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        vehicle.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        vehicle.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        vehicle.status.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [vehicles, searchTerm]);
 
   const getStatusBadgeVariant = (status: VehicleStatus) => {
     switch (status) {
@@ -104,28 +116,40 @@ export function VehicleManagement() {
 
   return (
     <>
-      <div className="flex justify-end gap-2 mb-4">
-        <Button variant="outline" onClick={() => setIsManageTypesDialogOpen(true)}>
-            <Settings className="mr-2 h-4 w-4" />
-            Manage Types
-        </Button>
-        <Dialog open={isAddVehicleDialogOpen} onOpenChange={setIsAddVehicleDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              {t('vehicles.addNew')}
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{t('vehicles.createNew')}</DialogTitle>
-            </DialogHeader>
-            <VehicleCreationForm 
-              onVehicleCreated={() => setIsAddVehicleDialogOpen(false)} 
-              vehicleTypes={vehicleTypes || []}
+      <div className="flex justify-between items-center mb-4">
+        <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+            type="search"
+            placeholder="Search vehicles by name, type, location..."
+            className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[320px]"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
             />
-          </DialogContent>
-        </Dialog>
+        </div>
+        <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setIsManageTypesDialogOpen(true)}>
+                <Settings className="mr-2 h-4 w-4" />
+                Manage Types
+            </Button>
+            <Dialog open={isAddVehicleDialogOpen} onOpenChange={setIsAddVehicleDialogOpen}>
+            <DialogTrigger asChild>
+                <Button>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                {t('vehicles.addNew')}
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                <DialogTitle>{t('vehicles.createNew')}</DialogTitle>
+                </DialogHeader>
+                <VehicleCreationForm 
+                onVehicleCreated={() => setIsAddVehicleDialogOpen(false)} 
+                vehicleTypes={vehicleTypes || []}
+                />
+            </DialogContent>
+            </Dialog>
+        </div>
       </div>
       <Table>
         <TableHeader>
@@ -139,7 +163,7 @@ export function VehicleManagement() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {vehicles && vehicles.map((vehicle) => {
+          {filteredVehicles.map((vehicle) => {
             const Icon = vehicle.type ? (vehicleIcons[vehicle.type] || vehicleIcons['default']) : Truck;
             return (
               <TableRow key={vehicle.id}>
