@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MoreHorizontal, CheckCircle, XCircle, Truck, User as UserIcon, Archive, Trash2, Replace, FileText, History, ArchiveRestore } from "lucide-react";
+import { MoreHorizontal, CheckCircle, XCircle, Truck, User as UserIcon, Archive, Trash2, Replace, FileText, History, ArchiveRestore, Search } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useLanguage } from "@/hooks/use-language";
 import { Job, JobStatus, User, Vehicle } from "@/lib/types";
@@ -45,6 +45,7 @@ import { collection, query, where, doc, serverTimestamp, getDocs, writeBatch } f
 import { format, sub } from "date-fns";
 import { JobCompletionSlip } from "./job-completion-slip";
 import { JobHistoryDialog } from "./job-history-dialog";
+import { Input } from "../ui/input";
 
 interface JobListProps {
   showOnlyUnclaimed?: boolean;
@@ -60,6 +61,7 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
   const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
   const [isSlipModalOpen, setisSlipModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const { data: allUsers, isLoading: isLoadingUsers } = useCollection<User>(useMemoFirebase(() => collection(firestore, 'users'), [firestore]));
   const { data: allVehicles, isLoading: isLoadingVehicles } = useCollection<Vehicle>(useMemoFirebase(() => collection(firestore, 'vehicles'), [firestore]));
@@ -146,6 +148,22 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
   }, [firestore, user, showOnlyUnclaimed, jobStatus]);
 
   const { data: jobs, isLoading: isLoadingJobs } = useCollection<Job>(jobsQuery);
+
+  const filteredJobs = useMemo(() => {
+    if (!jobs) return [];
+    return jobs.filter(job => {
+      const driverName = job.assignedDriverId ? userMap.get(job.assignedDriverId)?.name || '' : '';
+      const supervisorName = job.supervisorId ? userMap.get(job.supervisorId)?.name || '' : '';
+      const vehicleName = job.assignedVehicleId ? vehicleMap.get(job.assignedVehicleId)?.name || '' : '';
+
+      return job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        job.origin.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        job.destination.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        driverName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        supervisorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        vehicleName.toLowerCase().includes(searchTerm.toLowerCase());
+    });
+  }, [jobs, searchTerm, userMap, vehicleMap]);
   
   const createLog = (jobId: string, activityType: string, description: string) => {
     if(!user) return;
@@ -315,32 +333,44 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
 
   return (
     <>
-      {isArchivedView && user?.role === 'Admin' && (
-        <div className="flex justify-end mb-4">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive">
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete All Archived
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete all {jobs?.length || 0} archived jobs.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDeleteAllArchived} className="bg-destructive hover:bg-destructive/90">
-                  Yes, Delete All
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+      <div className="flex justify-between items-center mb-4">
+        <div className="relative">
+             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+             <Input
+                type="search"
+                placeholder="Search jobs..."
+                className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[320px]"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+            />
         </div>
-      )}
+        {isArchivedView && user?.role === 'Admin' && (
+          <div className="flex justify-end">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete All Archived
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete all {jobs?.filter(j => j.status === 'Archived').length || 0} archived jobs.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteAllArchived} className="bg-destructive hover:bg-destructive/90">
+                    Yes, Delete All
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        )}
+      </div>
       <Table>
         <TableHeader>
           <TableRow>
@@ -354,7 +384,7 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
           </TableRow>
         </TableHeader>
         <TableBody>
-          {jobs && jobs.map((job) => (
+          {filteredJobs && filteredJobs.map((job) => (
             <TableRow key={job.id}>
               <TableCell className="font-medium">
                 <div className="flex flex-col">

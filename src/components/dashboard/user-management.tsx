@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -41,11 +41,12 @@ import { useLanguage } from "@/hooks/use-language";
 import { useCollection, useFirestore, useMemoFirebase, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
 import { collection, doc, writeBatch } from "firebase/firestore";
 import { User } from "@/lib/types";
-import { PlusCircle, MoreHorizontal, Trash2, CheckCircle, XCircle, RefreshCw } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Trash2, CheckCircle, XCircle, RefreshCw, Search } from "lucide-react";
 import { RegistrationForm } from "@/components/auth/registration-form";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 
 export function UserManagement() {
   const { t } = useLanguage();
@@ -53,9 +54,19 @@ export function UserManagement() {
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const usersQuery = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
   const { data: users, isLoading } = useCollection<User>(usersQuery);
+
+  const filteredUsers = useMemo(() => {
+    if (!users) return [];
+    return users.filter(user =>
+        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.role.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [users, searchTerm]);
 
   useEffect(() => {
     const today = new Date().toDateString();
@@ -137,25 +148,37 @@ export function UserManagement() {
 
   return (
     <>
-      <div className="flex justify-end mb-4 gap-2">
-        <Button onClick={handleResetAllDrivers} variant="outline">
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Reset Drivers
-        </Button>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              {t('users.addNew')}
+      <div className="flex justify-between items-center mb-4 gap-2">
+         <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+            type="search"
+            placeholder="Search users..."
+            className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[320px]"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            />
+        </div>
+        <div className="flex gap-2">
+            <Button onClick={handleResetAllDrivers} variant="outline">
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Reset Drivers
             </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{t('users.createNew')}</DialogTitle>
-            </DialogHeader>
-            <RegistrationForm onRegistrationComplete={() => setIsDialogOpen(false)} isAdminRegistration={true} />
-          </DialogContent>
-        </Dialog>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  {t('users.addNew')}
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>{t('users.createNew')}</DialogTitle>
+                </DialogHeader>
+                <RegistrationForm onRegistrationComplete={() => setIsDialogOpen(false)} isAdminRegistration={true} />
+              </DialogContent>
+            </Dialog>
+        </div>
       </div>
       <Table>
         <TableHeader>
@@ -168,7 +191,7 @@ export function UserManagement() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {users && users.map((user) => (
+          {filteredUsers && filteredUsers.map((user) => (
             <TableRow key={user.id}>
               <TableCell>
                 <div className="flex items-center gap-3">
@@ -182,10 +205,12 @@ export function UserManagement() {
               <TableCell>{user.email}</TableCell>
               <TableCell>{user.role}</TableCell>
               <TableCell>
-                {user.role === 'Driver' && (
+                {user.role === 'Driver' ? (
                   <Badge variant={user.availability ? 'secondary' : 'destructive'}>
                     {user.availability ? 'Available' : 'Unavailable'}
                   </Badge>
+                ) : (
+                  <Badge variant="secondary">Available</Badge>
                 )}
               </TableCell>
               <TableCell>
