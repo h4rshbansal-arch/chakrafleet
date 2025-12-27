@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Table,
   TableBody,
@@ -33,7 +33,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { MoreHorizontal, CheckCircle, XCircle, Truck, User as UserIcon, Archive, Trash2, Replace, FileText, History } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useLanguage } from "@/hooks/use-language";
@@ -41,8 +40,8 @@ import { Job, JobStatus, User, Vehicle } from "@/lib/types";
 import { ManualAssignmentDialog } from "./manual-assignment-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useCollection, useFirestore, useMemoFirebase, updateDocumentNonBlocking, deleteDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase";
-import { collection, query, where, doc, serverTimestamp } from "firebase/firestore";
-import { format } from "date-fns";
+import { collection, query, where, doc, serverTimestamp, getDocs, writeBatch } from "firebase/firestore";
+import { format, sub } from "date-fns";
 import { JobCompletionSlip } from "./job-completion-slip";
 import { JobHistoryDialog } from "./job-history-dialog";
 
@@ -63,6 +62,52 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
 
   const { data: allUsers, isLoading: isLoadingUsers } = useCollection<User>(useMemoFirebase(() => collection(firestore, 'users'), [firestore]));
   const { data: allVehicles, isLoading: isLoadingVehicles } = useCollection<Vehicle>(useMemoFirebase(() => collection(firestore, 'vehicles'), [firestore]));
+
+  // Auto-delete old archived jobs
+  useEffect(() => {
+    const autoDeleteOldJobs = async () => {
+      if (!firestore || user?.role !== 'Admin') return;
+
+      const lastCleanupDate = localStorage.getItem('lastJobCleanupDate');
+      const today = new Date().toDateString();
+
+      if (lastCleanupDate === today) return; // Already cleaned up today
+
+      try {
+        const twoMonthsAgo = sub(new Date(), { months: 2 });
+        const archivedJobsQuery = query(collection(firestore, 'jobs'), where('status', '==', 'Archived'));
+        const querySnapshot = await getDocs(archivedJobsQuery);
+        
+        const batch = writeBatch(firestore);
+        let deletedCount = 0;
+
+        querySnapshot.forEach((jobDoc) => {
+          const job = jobDoc.data() as Job;
+          // Use completionDate if available, otherwise fallback to requestDate
+          const jobDate = job.completionDate?.toDate() || job.requestDate?.toDate();
+          if (jobDate && jobDate < twoMonthsAgo) {
+            batch.delete(jobDoc.ref);
+            deletedCount++;
+          }
+        });
+
+        if (deletedCount > 0) {
+          await batch.commit();
+          toast({
+            title: "Auto-Cleanup Complete",
+            description: `${deletedCount} archived jobs older than 2 months have been deleted.`,
+          });
+        }
+
+        localStorage.setItem('lastJobCleanupDate', today);
+      } catch (error) {
+        console.error("Error during auto-deletion of old jobs:", error);
+      }
+    };
+
+    autoDeleteOldJobs();
+  }, [firestore, user]);
+
 
   // Memoized map for quick user lookup
   const userMap = useMemo(() => {
@@ -427,3 +472,5 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
     </>
   );
 }
+
+    
