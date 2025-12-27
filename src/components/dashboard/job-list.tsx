@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -33,7 +34,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MoreHorizontal, CheckCircle, XCircle, Truck, User as UserIcon, Archive, Trash2, Replace, FileText, History } from "lucide-react";
+import { MoreHorizontal, CheckCircle, XCircle, Truck, User as UserIcon, Archive, Trash2, Replace, FileText, History, ArchiveRestore } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useLanguage } from "@/hooks/use-language";
 import { Job, JobStatus, User, Vehicle } from "@/lib/types";
@@ -62,6 +63,8 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
 
   const { data: allUsers, isLoading: isLoadingUsers } = useCollection<User>(useMemoFirebase(() => collection(firestore, 'users'), [firestore]));
   const { data: allVehicles, isLoading: isLoadingVehicles } = useCollection<Vehicle>(useMemoFirebase(() => collection(firestore, 'vehicles'), [firestore]));
+
+  const isArchivedView = useMemo(() => jobStatus?.length === 1 && jobStatus[0] === 'Archived', [jobStatus]);
 
   // Auto-delete old archived jobs
   useEffect(() => {
@@ -221,10 +224,48 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
 
   const handleArchive = (job: Job) => {
     const jobRef = doc(firestore, 'jobs', job.id);
-    updateDocumentNonBlocking(jobRef, { status: 'Archived' });
+    updateDocumentNonBlocking(jobRef, { status: 'Archived', previousStatus: job.status });
     createLog(job.id, "Job Archived", `Job was archived.`);
     toast({ title: 'Job Archived' });
   };
+  
+  const handleUnarchive = (job: Job) => {
+    const jobRef = doc(firestore, 'jobs', job.id);
+    // Restore to 'Completed' as a sensible default, or use a stored previous status if available.
+    const restoredStatus: JobStatus = (job as any).previousStatus || 'Completed';
+    updateDocumentNonBlocking(jobRef, { status: restoredStatus, previousStatus: null });
+    createLog(job.id, "Job Unarchived", `Job was unarchived.`);
+    toast({ title: 'Job Unarchived' });
+  };
+  
+  const handleDeleteAllArchived = async () => {
+    if (!firestore || !jobs) return;
+    const archivedJobs = jobs.filter(j => j.status === 'Archived');
+    if (archivedJobs.length === 0) {
+      toast({ title: "No jobs to delete." });
+      return;
+    }
+    const batch = writeBatch(firestore);
+    archivedJobs.forEach(job => {
+      const jobRef = doc(firestore, 'jobs', job.id);
+      batch.delete(jobRef);
+    });
+    try {
+      await batch.commit();
+      toast({
+        title: "All Archived Jobs Deleted",
+        description: `${archivedJobs.length} jobs have been permanently deleted.`
+      });
+    } catch (error) {
+      console.error("Error deleting all archived jobs:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not delete archived jobs."
+      });
+    }
+  };
+
 
   const handleDeletePermanent = (job: Job) => {
     const jobRef = doc(firestore, 'jobs', job.id);
@@ -274,6 +315,32 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
 
   return (
     <>
+      {isArchivedView && user?.role === 'Admin' && (
+        <div className="flex justify-end mb-4">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive">
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete All Archived
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete all {jobs?.length || 0} archived jobs.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteAllArchived} className="bg-destructive hover:bg-destructive/90">
+                  Yes, Delete All
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      )}
       <Table>
         <TableHeader>
           <TableRow>
@@ -347,15 +414,13 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
                                 View History
                             </DropdownMenuItem>
                         )}
-                        {job.status === 'Completed' ? (
+                        {job.status === 'Completed' && (
                           <DropdownMenuItem onSelect={() => handleOpenSlip(job)}>
                             <FileText className="mr-2 h-4 w-4" />
                             View Slip
                           </DropdownMenuItem>
-                        ) : (
-                          <DropdownMenuItem>{t('jobs.view')}</DropdownMenuItem>
                         )}
-
+                        
                         {user?.role === 'Supervisor' && job.status === 'Unclaimed' && (
                             <DropdownMenuItem onClick={() => handleClaimJob(job)}>{t('jobs.claim')}</DropdownMenuItem>
                         )}
@@ -392,6 +457,10 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
                             )}
                              {job.status === 'Archived' && (
                                 <>
+                                 <DropdownMenuItem onClick={() => handleUnarchive(job)}>
+                                  <ArchiveRestore className="mr-2 h-4 w-4" />
+                                  Unarchive
+                                </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                  <AlertDialogTrigger asChild>
                                     <DropdownMenuItem className="text-destructive">
@@ -472,5 +541,3 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
     </>
   );
 }
-
-    

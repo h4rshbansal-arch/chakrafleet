@@ -42,6 +42,7 @@ export interface Job {
   date: string;
   time?: string;
   status: JobStatus;
+  previousStatus?: JobStatus;
   assignedDriverId?: string;
   assignedVehicleId?: string;
   supervisorId?: string;
