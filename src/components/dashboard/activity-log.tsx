@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -10,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { useLanguage } from "@/hooks/use-language";
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, limit } from "firebase/firestore";
+import { collection, query, orderBy, limit, where } from "firebase/firestore";
 import { ActivityLog as ActivityLogType } from "@/lib/types";
 import { format } from "date-fns";
 import { useMemo } from "react";
@@ -34,7 +35,7 @@ export function ActivityLog() {
   // For very large systems, a more optimized approach might be needed,
   // but for a moderate number of logs, this is efficient.
   const usersQuery = useMemoFirebase(() => {
-    if (userIds.length === 0) return null;
+    if (!firestore || userIds.length === 0) return null;
     return query(collection(firestore, 'users'), where('id', 'in', userIds));
   }, [firestore, userIds]);
   
