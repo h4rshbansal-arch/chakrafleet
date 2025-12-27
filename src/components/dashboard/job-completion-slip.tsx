@@ -96,11 +96,9 @@ export function JobCompletionSlip({ job, driver, vehicle, isOpen, onOpenChange }
 
           <DialogFooter>
             <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
-            <div onClick={handlePrint}>
-              <Button>
-                Print Slip
-              </Button>
-            </div>
+            <Button onClick={handlePrint}>
+              Print Slip
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
