@@ -5,13 +5,16 @@ import { JobCreationForm } from "@/components/dashboard/job-creation-form";
 import { JobList } from "@/components/dashboard/job-list";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DashboardProvider, useDashboard } from "@/contexts/dashboard-context";
 import { FilePlus, List, FileCheck } from "lucide-react";
 
-export default function SupervisorDashboard() {
+function SupervisorDashboardContent() {
+  const { activeTab, setActiveTab } = useDashboard();
+
   return (
     <div className="space-y-8">
       <AnalyticsCards />
-      <Tabs defaultValue="my-jobs" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid h-auto w-full grid-cols-1 sm:w-auto sm:grid-cols-3">
           <TabsTrigger value="my-jobs"><List className="mr-2 h-4 w-4" /> My Jobs</TabsTrigger>
           <TabsTrigger value="available-jobs"><FileCheck className="mr-2 h-4 w-4" /> Available Jobs</TabsTrigger>
@@ -53,4 +56,12 @@ export default function SupervisorDashboard() {
       </Tabs>
     </div>
   );
+}
+
+export default function SupervisorDashboard() {
+  return (
+    <DashboardProvider defaultTab="my-jobs">
+      <SupervisorDashboardContent />
+    </DashboardProvider>
+  )
 }

@@ -10,6 +10,8 @@ import {
   PlusCircle,
   History,
   PanelLeft,
+  List,
+  FileCheck
 } from "lucide-react";
 import {
   Tooltip,
@@ -38,6 +40,11 @@ export function AppSidebar({ isSheet = false }: AppSidebarProps) {
     router.push('/admin/dashboard');
     setActiveTab(tab);
   };
+  
+  const handleSupervisorNav = (tab: string) => {
+    router.push('/supervisor/dashboard');
+    setActiveTab(tab);
+  };
 
   const navItems = {
     Admin: [
@@ -49,14 +56,13 @@ export function AppSidebar({ isSheet = false }: AppSidebarProps) {
       { href: "/admin/dashboard", icon: FileText, label: t('sidebar.logs'), action: () => handleAdminNav('logs') },
     ],
     Supervisor: [
-      { href: "/supervisor/dashboard", icon: Home, label: t('sidebar.dashboard') },
-      { href: "/supervisor/dashboard", icon: PlusCircle, label: t('sidebar.createJob') },
-      { href: "/supervisor/dashboard", icon: History, label: t('sidebar.jobHistory') },
+      { href: "/supervisor/dashboard", icon: List, label: "My Jobs", action: () => handleSupervisorNav('my-jobs')},
+      { href: "/supervisor/dashboard", icon: FileCheck, label: "Available Jobs", action: () => handleSupervisorNav('available-jobs')},
+      { href: "/supervisor/dashboard", icon: PlusCircle, label: t('sidebar.createJob'), action: () => handleSupervisorNav('create-job')},
     ],
     Driver: [
       { href: "/driver/dashboard", icon: Home, label: t('sidebar.dashboard') },
       { href: "/driver/dashboard", icon: Package, label: t('sidebar.jobs') },
-      { href: "/driver/dashboard", icon: History, label: t('sidebar.jobHistory') },
     ],
   };
 
