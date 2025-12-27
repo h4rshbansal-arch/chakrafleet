@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Job, User, Vehicle } from "@/lib/types";
 import { format } from "date-fns";
-import { Truck, User as UserIcon, Calendar, MapPin, Hash, CheckCircle, FileText, Clock } from "lucide-react";
+import { Truck, User as UserIcon, Calendar, MapPin, CheckCircle, FileText, Clock } from "lucide-react";
 import React, { useRef } from "react";
 import { useReactToPrint } from "react-to-print";
 
@@ -34,19 +34,19 @@ export function JobCompletionSlip({ job, driver, vehicle, isOpen, onOpenChange }
 
     const DetailRow = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string | undefined }) => (
         <div className="flex items-start">
-            <Icon className="h-5 w-5 text-muted-foreground mr-4 mt-1" />
+            <Icon className="h-4 w-4 text-muted-foreground mr-3 mt-1" />
             <div className="flex flex-col">
-                <span className="text-sm text-muted-foreground">{label}</span>
-                <span className="font-semibold">{value || "N/A"}</span>
+                <span className="text-xs text-muted-foreground">{label}</span>
+                <span className="font-semibold text-sm">{value || "N/A"}</span>
             </div>
         </div>
     );
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 font-headline text-2xl">
+            <DialogTitle className="flex items-center gap-2 font-headline text-xl">
               <FileText />
               Job Completion Slip
             </DialogTitle>
@@ -55,41 +55,39 @@ export function JobCompletionSlip({ job, driver, vehicle, isOpen, onOpenChange }
             </DialogDescription>
           </DialogHeader>
           
-          <div ref={componentRef} className="p-6 bg-white rounded-lg text-black">
-             <div className="flex justify-between items-center mb-6">
-                <h2 className="text-3xl font-bold text-primary font-headline">EZTransport</h2>
-                <div className="text-right">
+          <div ref={componentRef} className="p-4 bg-white rounded-lg text-black">
+             <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold text-primary font-headline">EZTransport</h2>
+                <div className="text-right text-xs">
                     <p className="font-semibold">Job ID: {job.id}</p>
                     {job.completionDate && (
-                      <p className="text-sm text-gray-600">Completed on: {format(job.completionDate.toDate(), 'PPpp')}</p>
+                      <p className="text-gray-600">Completed: {format(job.completionDate.toDate(), 'PPp')}</p>
                     )}
                 </div>
             </div>
             
-            <div className="p-4 border rounded-lg mb-6">
-                <h3 className="text-xl font-semibold mb-4">{job.title}</h3>
-                <p className="text-gray-700">{job.description}</p>
+            <div className="p-3 border rounded-lg mb-4">
+                <h3 className="text-lg font-semibold mb-2">{job.title}</h3>
+                <p className="text-sm text-gray-700">{job.description}</p>
             </div>
 
-            <Separator className="my-6" />
+            <Separator className="my-4" />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <DetailRow icon={MapPin} label="Origin" value={job.origin} />
                 <DetailRow icon={MapPin} label="Destination" value={job.destination} />
-                <DetailRow icon={Calendar} label="Requested Date" value={job.requestDate ? format(job.requestDate.toDate(), 'PPpp') : 'N/A'} />
-                {job.completionDate && <DetailRow icon={Clock} label="Completion Date" value={job.completionDate ? format(job.completionDate.toDate(), 'PPpp') : 'N/A'} />}
-                <DetailRow icon={CheckCircle} label="Job Status" value={job.status} />
+                <DetailRow icon={Calendar} label="Requested" value={job.requestDate ? format(job.requestDate.toDate(), 'PPp') : 'N/A'} />
+                {job.completionDate && <DetailRow icon={Clock} label="Completed" value={job.completionDate ? format(job.completionDate.toDate(), 'PPp') : 'N/A'} />}
+                <DetailRow icon={CheckCircle} label="Final Status" value={job.status} />
                 
 
                 <Separator className="md:col-span-2 my-2" />
 
                 <DetailRow icon={UserIcon} label="Assigned Driver" value={driver?.name} />
-                <DetailRow icon={Hash} label="Driver ID" value={driver?.id} />
                 <DetailRow icon={Truck} label="Assigned Vehicle" value={vehicle ? `${vehicle.name} (${vehicle.type})` : undefined} />
-                <DetailRow icon={Hash} label="Vehicle ID" value={vehicle?.id} />
             </div>
 
-            <div className="mt-12 text-center text-xs text-gray-500">
+            <div className="mt-8 text-center text-xs text-gray-500">
                 <p>Thank you for using EZTransport.</p>
                 <p>&copy; {new Date().getFullYear()} EZTransport. All rights reserved.</p>
             </div>
