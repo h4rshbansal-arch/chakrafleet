@@ -32,6 +32,7 @@ export function RegistrationForm({ onRegistrationComplete, isAdminRegistration =
     // Only run this check for the public registration form
     if (!isAdminRegistration) {
       const checkAdminExists = async () => {
+        if (!firestore) return;
         try {
           const usersRef = collection(firestore, 'users');
           const q = query(usersRef, where('role', '==', 'Admin'));
@@ -51,8 +52,15 @@ export function RegistrationForm({ onRegistrationComplete, isAdminRegistration =
     e.preventDefault();
     setIsLoading(true);
     try {
-      // Use the signup function from auth context
-      await signup(email, password, name, role, { redirect: !onRegistrationComplete });
+      const signupData: { redirect?: boolean; availability?: boolean } = {
+        redirect: !onRegistrationComplete
+      };
+
+      if (role === 'Driver') {
+        signupData.availability = true;
+      }
+
+      await signup(email, password, name, role, signupData);
 
       toast({
         title: "Account Created",

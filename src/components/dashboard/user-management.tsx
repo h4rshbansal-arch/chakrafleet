@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Table,
   TableBody,
@@ -39,9 +39,9 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useLanguage } from "@/hooks/use-language";
 import { useCollection, useFirestore, useMemoFirebase, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
-import { collection, doc } from "firebase/firestore";
+import { collection, doc, writeBatch } from "firebase/firestore";
 import { User } from "@/lib/types";
-import { PlusCircle, MoreHorizontal, Trash2, CheckCircle, XCircle } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Trash2, CheckCircle, XCircle, RefreshCw } from "lucide-react";
 import { RegistrationForm } from "@/components/auth/registration-form";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
@@ -56,6 +56,45 @@ export function UserManagement() {
 
   const usersQuery = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
   const { data: users, isLoading } = useCollection<User>(usersQuery);
+
+  useEffect(() => {
+    const today = new Date().toDateString();
+    const lastResetDate = localStorage.getItem('lastDriverResetDate');
+
+    if (lastResetDate !== today && users && users.length > 0) {
+      const driversToReset = users.filter(user => user.role === 'Driver' && !user.availability);
+      if (driversToReset.length > 0) {
+        handleResetAllDrivers();
+        localStorage.setItem('lastDriverResetDate', today);
+      }
+    }
+  }, [users]);
+
+  const handleResetAllDrivers = async () => {
+    if (!firestore || !users) return;
+    const batch = writeBatch(firestore);
+    const drivers = users.filter(user => user.role === 'Driver');
+
+    drivers.forEach(driver => {
+      const userRef = doc(firestore, 'users', driver.id);
+      batch.update(userRef, { availability: true });
+    });
+
+    try {
+      await batch.commit();
+      toast({
+        title: "Drivers Availability Reset",
+        description: "All drivers have been marked as available for the day.",
+      });
+    } catch (error) {
+      console.error("Error resetting driver availability:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not reset driver availability.",
+      });
+    }
+  };
 
   const getInitials = (name: string) => {
     if (!name) return '';
@@ -80,8 +119,6 @@ export function UserManagement() {
       title: "User Deleted",
       description: "The user has been removed from the system.",
     });
-    // Note: This does not delete the user from Firebase Authentication, only Firestore.
-    // A cloud function would be needed for a complete deletion.
   };
 
   const handleToggleAvailability = (user: User) => {
@@ -100,7 +137,11 @@ export function UserManagement() {
 
   return (
     <>
-      <div className="flex justify-end mb-4">
+      <div className="flex justify-end mb-4 gap-2">
+        <Button onClick={handleResetAllDrivers} variant="outline">
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Reset Drivers
+        </Button>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button>

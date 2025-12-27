@@ -18,10 +18,12 @@ interface UserProfile {
   email: string;
   role: UserRole;
   avatarUrl: string;
+  availability?: boolean;
 }
 
 interface SignupOptions {
   redirect?: boolean;
+  availability?: boolean;
 }
 
 interface AuthContextType {
@@ -39,7 +41,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Function to create a user profile in Firestore if it doesn't exist
-const createUserProfile = async (firestore: Firestore, firebaseUser: FirebaseUser, name: string, email: string, role: UserRole) => {
+const createUserProfile = async (firestore: Firestore, firebaseUser: FirebaseUser, name: string, email: string, role: UserRole, availability?: boolean) => {
   const userRef = doc(firestore, "users", firebaseUser.uid);
   const userSnap = await getDoc(userRef);
   if (!userSnap.exists()) {
@@ -50,6 +52,9 @@ const createUserProfile = async (firestore: Firestore, firebaseUser: FirebaseUse
       role: role,
       avatarUrl: PlaceHolderImages.find(p => p.imageHint.includes('person'))?.imageUrl || '',
     };
+    if (role === 'Driver') {
+      newUserProfile.availability = availability ?? false;
+    }
     await setDoc(userRef, newUserProfile, { merge: true });
   }
 };
@@ -103,6 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     // At this point, firebaseUser is loaded. Now we fetch profile.
     setProfileLoading(true);
+    if (!firestore) return;
     const unsub = onSnapshot(doc(firestore, "users", firebaseUser.uid), (doc) => {
       if (doc.exists()) {
         setUserProfile({ id: doc.id, ...doc.data() } as UserProfile);
@@ -123,25 +129,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [firebaseUser, isFirebaseUserLoading, firestore]);
   
   const login = async (email: string, password: string) => {
+    if (!auth) throw new Error("Auth service is not available");
     await signInWithEmailAndPassword(auth, email, password);
     router.push("/dashboard");
   };
 
   const signup = async (email: string, password: string, name: string, role: UserRole, options: SignupOptions = { redirect: true }) => {
+    if (!auth || !firestore) throw new Error("Firebase services are not available");
     const cred = await createUserWithEmailAndPassword(auth, email, password);
-    await createUserProfile(firestore, cred.user, name, email, role);
+    await createUserProfile(firestore, cred.user, name, email, role, options.availability);
     if (options.redirect) {
       router.push("/dashboard");
     }
   }
 
   const logout = async () => {
+    if (!auth) return;
     await auth.signOut();
     setUserProfile(null); // Clear local profile state
     router.push("/login");
   };
 
   const updateUserProfile = async (userId: string, data: Partial<UserProfile>) => {
+    if (!firestore) return;
     const userRef = doc(firestore, "users", userId);
     await updateDoc(userRef, data);
   };
