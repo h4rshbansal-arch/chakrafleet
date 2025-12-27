@@ -69,6 +69,11 @@ export function useCollection<T = any>(
   const [error, setError] = useState<FirestoreError | Error | null>(null);
   const playSound = useNotificationSound();
   const previousDataRef = useRef<StateDataType>(null);
+  const optionsRef = useRef(options);
+
+  useEffect(() => {
+    optionsRef.current = options;
+  }, [options]);
 
   useEffect(() => {
     if (!memoizedTargetRefOrQuery) {
@@ -94,7 +99,7 @@ export function useCollection<T = any>(
           setData(results);
           if (previousDataRef.current !== null) { // Don't trigger on initial load
              playSound();
-             options?.onDataChange?.(results);
+             optionsRef.current?.onDataChange?.(results);
           }
           previousDataRef.current = results;
         }
@@ -127,7 +132,8 @@ export function useCollection<T = any>(
       unsubscribe();
       previousDataRef.current = null;
     }
-  }, [memoizedTargetRefOrQuery, playSound, options]); 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [memoizedTargetRefOrQuery]); 
 
   if(memoizedTargetRefOrQuery && !memoizedTargetRefOrQuery.__memo) {
     throw new Error(memoizedTargetRefOrQuery + ' was not properly memoized using useMemoFirebase');
