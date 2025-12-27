@@ -6,12 +6,11 @@ import { UserManagement } from "@/components/dashboard/user-management";
 import { VehicleManagement } from "@/components/dashboard/vehicle-management";
 import { ActivityLog } from "@/components/dashboard/activity-log";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, Users, Truck, FileText, PlusCircle, Archive, Settings, Home } from "lucide-react";
+import { Package, Users, Truck, FileText, PlusCircle, Archive, Settings } from "lucide-react";
 import { DashboardProvider, useDashboard } from "@/contexts/dashboard-context";
 import { JobCreationForm } from "@/components/dashboard/job-creation-form";
 import { Settings as SettingsComponent } from "@/components/dashboard/settings";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { cn } from "@/lib/utils";
 import { BottomNavBar } from "@/components/shared/bottom-nav-bar";
 
 function AdminDashboardContent() {

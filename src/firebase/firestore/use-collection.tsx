@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Query,
   onSnapshot,
@@ -12,6 +12,8 @@ import {
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { useNotificationSound } from '@/hooks/use-notification-sound';
+import isEqual from 'lodash.isequal';
+
 
 /** Utility type to add an 'id' field to a given type T. */
 export type WithId<T> = T & { id: string };
@@ -37,6 +39,9 @@ export interface InternalQuery extends Query<DocumentData> {
     }
   }
 }
+interface UseCollectionOptions<T> {
+    onDataChange?: (data: WithId<T>[]) => void;
+}
 
 /**
  * React hook to subscribe to a Firestore collection or query in real-time.
@@ -54,29 +59,28 @@ export interface InternalQuery extends Query<DocumentData> {
  */
 export function useCollection<T = any>(
     memoizedTargetRefOrQuery: ((CollectionReference<DocumentData> | Query<DocumentData>) & {__memo?: boolean})  | null | undefined,
+    options?: UseCollectionOptions<T>
 ): UseCollectionResult<T> {
   type ResultItemType = WithId<T>;
   type StateDataType = ResultItemType[] | null;
 
   const [data, setData] = useState<StateDataType>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const playSound = useNotificationSound();
+  const previousDataRef = useRef<StateDataType>(null);
 
   useEffect(() => {
     if (!memoizedTargetRefOrQuery) {
       setData(null);
       setIsLoading(false);
       setError(null);
-      setIsInitialLoad(true);
       return;
     }
 
     setIsLoading(true);
     setError(null);
 
-    // Directly use memoizedTargetRefOrQuery as it's assumed to be the final query
     const unsubscribe = onSnapshot(
       memoizedTargetRefOrQuery,
       (snapshot: QuerySnapshot<DocumentData>) => {
@@ -84,14 +88,19 @@ export function useCollection<T = any>(
         for (const doc of snapshot.docs) {
           results.push({ ...(doc.data() as T), id: doc.id });
         }
-        setData(results);
+        
+        // Only trigger updates if data has actually changed
+        if (!isEqual(previousDataRef.current, results)) {
+          setData(results);
+          if (previousDataRef.current !== null) { // Don't trigger on initial load
+             playSound();
+             options?.onDataChange?.(results);
+          }
+          previousDataRef.current = results;
+        }
+        
         setError(null);
         setIsLoading(false);
-        
-        if (!isInitialLoad) {
-          playSound();
-        }
-        setIsInitialLoad(false);
       },
       (error: FirestoreError) => {
         // This logic extracts the path from either a ref or a query
@@ -116,9 +125,9 @@ export function useCollection<T = any>(
 
     return () => {
       unsubscribe();
-      setIsInitialLoad(true);
+      previousDataRef.current = null;
     }
-  }, [memoizedTargetRefOrQuery, playSound]); // Re-run if the target query/reference changes.
+  }, [memoizedTargetRefOrQuery, playSound, options]); 
 
   if(memoizedTargetRefOrQuery && !memoizedTargetRefOrQuery.__memo) {
     throw new Error(memoizedTargetRefOrQuery + ' was not properly memoized using useMemoFirebase');

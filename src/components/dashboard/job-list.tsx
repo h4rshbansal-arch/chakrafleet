@@ -76,7 +76,8 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
     if (!user) return null;
     const q = collection(firestore, 'jobs');
     
-    const visibleStatuses: JobStatus[] = jobStatus || ['Pending', 'Approved', 'In Transit', 'Completed', 'Rejected', 'Unclaimed', 'Archived'];
+    // If jobStatus prop is provided, use it. Otherwise, fetch all non-archived jobs for general lists.
+    const visibleStatuses: JobStatus[] = jobStatus || ['Pending', 'Approved', 'In Transit', 'Completed', 'Rejected', 'Unclaimed'];
 
     if (user.role === 'Supervisor') {
        if (showOnlyUnclaimed) {
@@ -89,21 +90,24 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
     if (user.role === 'Driver') {
       return query(q, where('assignedDriverId', '==', user.id), where('status', 'in', visibleStatuses));
     }
-    // Admin sees jobs based on status filter
+    // Admin sees all jobs based on the status filter
     return query(q, where('status', 'in', visibleStatuses));
   }, [firestore, user, showOnlyUnclaimed, jobStatus]);
 
-  const { data: jobs, isLoading } = useCollection<Job>(jobsQuery);
+  const { data: jobs, isLoading } = useCollection<Job>(jobsQuery, {
+    onDataChange: (newJobs) => {
+        toast({
+            title: "Job Board Updated",
+            description: "New job information is available.",
+        });
+    }
+  });
 
   const filteredJobs = useMemo(() => {
     if (!jobs) return [];
-    let displayJobs = jobs;
-    if (jobStatus) {
-        displayJobs = jobs.filter(j => jobStatus.includes(j.status));
-    }
-    if (!searchTerm) return displayJobs;
+    if (!searchTerm) return jobs;
     
-    return displayJobs.filter(job =>
+    return jobs.filter(job =>
       job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       job.destination.toLowerCase().includes(searchTerm.toLowerCase()) ||
       job.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -111,7 +115,7 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
       (userMap.get(job.assignedDriverId || "")?.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (vehicleMap.get(job.assignedVehicleId || "")?.name || "").toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [jobs, searchTerm, userMap, vehicleMap, jobStatus]);
+  }, [jobs, searchTerm, userMap, vehicleMap]);
 
 
   const handleStatusChange = (jobId: string, status: JobStatus) => {
