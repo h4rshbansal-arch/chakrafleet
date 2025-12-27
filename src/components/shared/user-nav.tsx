@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,12 +17,23 @@ import { useLanguage } from "@/hooks/use-language";
 import { LogOut, Settings, User as UserIcon } from "lucide-react";
 import { ProfileDialog } from "../dashboard/profile-dialog";
 import { SettingsDialog } from "../dashboard/settings-dialog";
+import { cn } from "@/lib/utils";
 
 export function UserNav() {
   const { user, logout } = useAuth();
   const { t } = useLanguage();
   const [isProfileOpen, setProfileOpen] = useState(false);
   const [isSettingsOpen, setSettingsOpen] = useState(false);
+  const [isBlinking, setIsBlinking] = useState(false);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIsBlinking(true);
+      setTimeout(() => setIsBlinking(false), 1000); // Blink duration
+    }, 15000); // Refresh every 15 seconds
+
+    return () => clearInterval(interval);
+  }, []);
 
   if (!user) return null;
 
@@ -43,7 +54,12 @@ export function UserNav() {
               <AvatarImage src={user.avatarUrl} alt={user.name} />
               <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
             </Avatar>
-            <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-white" />
+            <span
+              className={cn(
+                "absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-white",
+                isBlinking && "animate-ping"
+              )}
+            />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56" align="end" forceMount>

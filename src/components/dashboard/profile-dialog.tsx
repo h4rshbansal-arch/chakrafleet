@@ -15,8 +15,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
-import { Pen, Trash2 } from "lucide-react";
+import { Pen } from "lucide-react";
 
 interface ProfileDialogProps {
   isOpen: boolean;
@@ -30,7 +29,6 @@ export function ProfileDialog({ isOpen, onOpenChange }: ProfileDialogProps) {
   
   // Local state for form inputs
   const [name, setName] = useState(user?.name || "");
-  const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || "");
 
   if (!user) return null;
 
@@ -41,7 +39,7 @@ export function ProfileDialog({ isOpen, onOpenChange }: ProfileDialogProps) {
 
   const handleSave = async () => {
     try {
-      await updateUserProfile(user.id, { name, avatarUrl });
+      await updateUserProfile(user.id, { name });
       toast({
         title: "Profile Updated",
         description: "Your profile has been successfully updated.",
@@ -59,15 +57,8 @@ export function ProfileDialog({ isOpen, onOpenChange }: ProfileDialogProps) {
   const handleCancel = () => {
     // Reset local state to original user data
     setName(user.name);
-    setAvatarUrl(user.avatarUrl);
     setIsEditing(false);
   };
-
-  const handleRemovePicture = () => {
-    // Set to a default placeholder, or an empty string
-    const defaultAvatar = PlaceHolderImages.find(p => p.imageHint.includes('person'))?.imageUrl || '';
-    setAvatarUrl(defaultAvatar);
-  }
 
   const handleCloseDialog = (open: boolean) => {
     if (!open) {
@@ -89,16 +80,9 @@ export function ProfileDialog({ isOpen, onOpenChange }: ProfileDialogProps) {
             <div className="flex flex-col items-center space-y-4">
                 <div className="relative group">
                     <Avatar className="h-24 w-24">
-                        <AvatarImage src={avatarUrl} alt={name} />
+                        <AvatarImage src={user.avatarUrl} alt={name} />
                         <AvatarFallback>{getInitials(name)}</AvatarFallback>
                     </Avatar>
-                     {isEditing && (
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                             <Button size="icon" variant="ghost" className="text-white hover:text-white" onClick={handleRemovePicture}>
-                                <Trash2 className="h-6 w-6" />
-                            </Button>
-                        </div>
-                    )}
                 </div>
 
                 {!isEditing ? (
@@ -112,10 +96,6 @@ export function ProfileDialog({ isOpen, onOpenChange }: ProfileDialogProps) {
                         <div className="space-y-2">
                            <Label htmlFor="name">Full Name</Label>
                            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
-                        </div>
-                         <div className="space-y-2">
-                           <Label htmlFor="avatarUrl">Profile Picture URL</Label>
-                           <Input id="avatarUrl" placeholder="https://example.com/image.png" value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} />
                         </div>
                     </div>
                 )}
