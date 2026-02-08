@@ -34,19 +34,19 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MoreHorizontal, CheckCircle, XCircle, Truck, User as UserIcon, Archive, Trash2, Replace, FileText, History, ArchiveRestore, Search, ChevronsRight, Plus } from "lucide-react";
+import { MoreHorizontal, CheckCircle, XCircle, Truck, User as UserIcon, Archive, Trash2, Replace, FileText, History, ArchiveRestore, Search, ChevronsRight } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useLanguage } from "@/hooks/use-language";
 import { Job, JobStatus, User, Vehicle } from "@/lib/types";
 import { ManualAssignmentDialog } from "./manual-assignment-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useCollection, useFirestore, useMemoFirebase, updateDocumentNonBlocking, deleteDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase";
-import { collection, query, where, doc, serverTimestamp, getDocs, writeBatch, increment } from "firebase/firestore";
+import { collection, query, where, doc, serverTimestamp, getDocs, writeBatch } from "firebase/firestore";
 import { format, sub } from "date-fns";
 import { JobCompletionSlip } from "./job-completion-slip";
 import { JobHistoryDialog } from "./job-history-dialog";
 import { Input } from "../ui/input";
-import { KilometersEntryDialog } from "./kilometers-entry-dialog";
+import { JobCompletionDialog } from "./job-completion-dialog";
 
 interface JobListProps {
   showOnlyUnclaimed?: boolean;
@@ -62,7 +62,7 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
   const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
   const [isSlipModalOpen, setisSlipModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
-  const [isKmModalOpen, setIsKmModalOpen] = useState(false);
+  const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
   const { data: allUsers, isLoading: isLoadingUsers } = useCollection<User>(useMemoFirebase(() => collection(firestore, 'users'), [firestore]));
@@ -189,15 +189,16 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
     toast({ title: t('notifications.statusUpdated'), description: `Job #${job.id} is now ${status}` });
   };
   
-   const handleJobCompletion = (jobId: string, kilometers: number) => {
+   const handleJobCompletion = (jobId: string, rounds: number, kilometers: number) => {
     const jobRef = doc(firestore, 'jobs', jobId);
     const updateData = {
       status: 'Completed',
+      roundsCompleted: rounds,
       kilometersDriven: kilometers,
       completionDate: serverTimestamp(),
     };
     updateDocumentNonBlocking(jobRef, updateData);
-    createLog(jobId, "Job Completed", `Job marked as completed with ${kilometers} km driven.`);
+    createLog(jobId, "Job Completed", `Job marked as completed with ${rounds} rounds and ${kilometers} km driven.`);
     toast({ title: t('notifications.statusUpdated'), description: `Job #${jobId} is now Completed` });
   };
 
@@ -225,9 +226,9 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
     setIsHistoryModalOpen(true);
   }
   
-  const handleOpenKmModal = (job: Job) => {
+  const handleOpenCompletionModal = (job: Job) => {
     setSelectedJob(job);
-    setIsKmModalOpen(true);
+    setIsCompletionModalOpen(true);
   };
 
   const handleAssign = (jobId: string, driverId: string, vehicleId: string) => {
@@ -313,16 +314,6 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
       variant: 'destructive'
     });
   };
-
-  const handleIncrementRound = (jobId: string) => {
-    const jobRef = doc(firestore, 'jobs', jobId);
-    updateDocumentNonBlocking(jobRef, {
-      roundsCompleted: increment(1)
-    });
-    createLog(jobId, "Round Completed", `Driver completed a round.`);
-    toast({ title: 'Round Added', description: `One round has been added to Job #${jobId}` });
-  };
-
 
   const getStatusBadgeVariant = (status: JobStatus) => {
     switch (status) {
@@ -466,14 +457,6 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
               <TableCell>
                  <div className="flex flex-col gap-2 items-start">
                     <Badge variant={getStatusBadgeVariant(job.status)}>{job.status}</Badge>
-                     {user?.role === 'Driver' && job.status === 'In Transit' && (
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm">Rounds: {job.roundsCompleted || 0}</span>
-                            <Button size="icon" variant="outline" className="h-6 w-6" onClick={() => handleIncrementRound(job.id)}>
-                                <Plus className="h-4 w-4" />
-                            </Button>
-                        </div>
-                    )}
                  </div>
               </TableCell>
               <TableCell>
@@ -560,7 +543,7 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
                                 </DropdownMenuItem>
                             )}
                             {job.status === 'In Transit' && (
-                                <DropdownMenuItem onClick={() => handleOpenKmModal(job)}>
+                                <DropdownMenuItem onSelect={() => handleOpenCompletionModal(job)}>
                                     {t('jobs.markComplete')}
                                 </DropdownMenuItem>
                             )}
@@ -615,11 +598,11 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
             userMap={userMap}
         />
       )}
-      {selectedJob && isKmModalOpen && (
-        <KilometersEntryDialog
+      {selectedJob && isCompletionModalOpen && (
+        <JobCompletionDialog
             job={selectedJob}
-            isOpen={isKmModalOpen}
-            onOpenChange={setIsKmModalOpen}
+            isOpen={isCompletionModalOpen}
+            onOpenChange={setIsCompletionModalOpen}
             onConfirm={handleJobCompletion}
         />
       )}
