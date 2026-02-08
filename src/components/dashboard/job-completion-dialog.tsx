@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -105,41 +105,3 @@ export function JobCompletionDialog({ job, isOpen, onOpenChange, onConfirm }: Jo
     </Dialog>
   );
 }
-
-// We need to extend the DialogContent to conditionally hide the close button
-const OriginalDialogContent = DialogContent;
-const NewDialogContent = React.forwardRef<
-  React.ElementRef<typeof OriginalDialogContent>,
-  React.ComponentPropsWithoutRef<typeof OriginalDialogContent> & { hideCloseButton?: boolean }
->(({ hideCloseButton, children, ...props }, ref) => (
-  <DialogPortal>
-    <DialogOverlay />
-    <DialogPrimitive.Content ref={ref} {...props}>
-      {children}
-      {!hideCloseButton && (
-        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-          <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
-        </DialogPrimitive.Close>
-      )}
-    </DialogPrimitive.Content>
-  </DialogPortal>
-));
-NewDialogContent.displayName = "NewDialogContent";
-(JobCompletionDialog as any).DialogContent = NewDialogContent;
-
-// This part is tricky, I can't just re-export from ui/dialog. I need to replicate it here for JobCompletionDialog to use it.
-import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { X } from "lucide-react";
-const DialogPortal = DialogPrimitive.Portal;
-const DialogOverlay = React.forwardRef<
-  React.ElementRef<typeof DialogPrimitive.Overlay>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
->(({ className, ...props }, ref) => (
-  <DialogPrimitive.Overlay
-    ref={ref}
-    className={"fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"}
-    {...props}
-  />
-));
-DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
