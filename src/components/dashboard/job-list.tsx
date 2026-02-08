@@ -472,13 +472,13 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
                         <DropdownMenuLabel>{t('jobs.actions')}</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         {user?.role === 'Admin' && (
-                            <DropdownMenuItem onSelect={() => handleOpenHistory(job)}>
+                            <DropdownMenuItem onClick={() => handleOpenHistory(job)}>
                                <History className="mr-2 h-4 w-4" />
                                 View History
                             </DropdownMenuItem>
                         )}
                         {job.status === 'Completed' && (
-                          <DropdownMenuItem onSelect={() => handleOpenSlip(job)}>
+                          <DropdownMenuItem onClick={() => handleOpenSlip(job)}>
                             <FileText className="mr-2 h-4 w-4" />
                             View Slip
                           </DropdownMenuItem>
@@ -506,6 +506,13 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
                                 <DropdownMenuItem onClick={() => handleOpenAssignment(job)}>
                                 <Replace className="mr-2 h-4 w-4" />
                                 Change Assignment
+                                </DropdownMenuItem>
+                            )}
+                            
+                            {job.status === 'In Transit' && (
+                                <DropdownMenuItem onClick={() => handleOpenCompletionModal(job)}>
+                                    <CheckCircle className="mr-2 h-4 w-4" />
+                                    {t('jobs.markComplete')}
                                 </DropdownMenuItem>
                             )}
 
@@ -543,7 +550,7 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
                                 </DropdownMenuItem>
                             )}
                             {job.status === 'In Transit' && (
-                                <DropdownMenuItem onSelect={() => handleOpenCompletionModal(job)}>
+                                <DropdownMenuItem onClick={() => handleOpenCompletionModal(job)}>
                                     {t('jobs.markComplete')}
                                 </DropdownMenuItem>
                             )}
