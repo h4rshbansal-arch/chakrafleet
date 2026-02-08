@@ -136,6 +136,14 @@
         "description": {
           "type": "string",
           "description": "Detailed description of the job."
+        },
+        "roundsCompleted": {
+          "type": "number",
+          "description": "Number of rounds completed by the driver for the job."
+        },
+        "kilometersDriven": {
+          "type": "number",
+          "description": "Total kilometers driven by the vehicle for this job."
         }
       },
       "required": [

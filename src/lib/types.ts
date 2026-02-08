@@ -50,6 +50,8 @@ export interface Job {
   creatorRole: UserRole;
   requestDate?: Timestamp;
   completionDate?: Timestamp;
+  roundsCompleted?: number;
+  kilometersDriven?: number;
 }
 
 export interface ActivityLog {

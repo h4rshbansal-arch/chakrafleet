@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Job, User, Vehicle } from "@/lib/types";
 import { format } from "date-fns";
-import { Truck, User as UserIcon, Calendar, MapPin, CheckCircle, FileText, Clock } from "lucide-react";
+import { Truck, User as UserIcon, Calendar, MapPin, CheckCircle, FileText, Clock, ChevronsRight, Milestone } from "lucide-react";
 import React, { useRef } from "react";
 
 
@@ -28,7 +28,7 @@ interface JobCompletionSlipProps {
 export function JobCompletionSlip({ job, driver, vehicle, isOpen, onOpenChange }: JobCompletionSlipProps) {
     const componentRef = useRef(null);
 
-    const DetailRow = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string | undefined }) => (
+    const DetailRow = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string | number | undefined }) => (
         <div className="flex items-start">
             <Icon className="h-4 w-4 text-muted-foreground mr-3 mt-1" />
             <div className="flex flex-col">
@@ -81,6 +81,8 @@ export function JobCompletionSlip({ job, driver, vehicle, isOpen, onOpenChange }
 
                 <DetailRow icon={UserIcon} label="Assigned Driver" value={driver?.name} />
                 <DetailRow icon={Truck} label="Assigned Vehicle" value={vehicle ? `${vehicle.name} (${vehicle.type})` : undefined} />
+                <DetailRow icon={ChevronsRight} label="Rounds Completed" value={job.roundsCompleted} />
+                <DetailRow icon={Milestone} label="Kilometers Driven" value={job.kilometersDriven ? `${job.kilometersDriven} km` : 'N/A'} />
             </div>
 
             <div className="mt-8 text-center text-xs text-gray-500">
