@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MoreHorizontal, CheckCircle, XCircle, Truck, User as UserIcon, Archive, Trash2, Replace, FileText, History, ArchiveRestore, Search, ChevronsRight } from "lucide-react";
+import { MoreHorizontal, CheckCircle, XCircle, Truck, User as UserIcon, Archive, Trash2, Replace, FileText, History, ArchiveRestore, Search, ChevronsRight, Milestone } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useLanguage } from "@/hooks/use-language";
 import { Job, JobStatus, User, Vehicle } from "@/lib/types";
@@ -64,9 +64,12 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const { data: allUsers, isLoading: isLoadingUsers } = useCollection<User>(useMemoFirebase(() => collection(firestore, 'users'), [firestore]));
-  const { data: allVehicles, isLoading: isLoadingVehicles } = useCollection<Vehicle>(useMemoFirebase(() => collection(firestore, 'vehicles'), [firestore]));
+  const forceRefresh = () => setRefreshKey(k => k + 1);
+
+  const { data: allUsers, isLoading: isLoadingUsers } = useCollection<User>(useMemoFirebase(() => collection(firestore, 'users'), [firestore, refreshKey]));
+  const { data: allVehicles, isLoading: isLoadingVehicles } = useCollection<Vehicle>(useMemoFirebase(() => collection(firestore, 'vehicles'), [firestore, refreshKey]));
 
   const isArchivedView = useMemo(() => jobStatus?.length === 1 && jobStatus[0] === 'Archived', [jobStatus]);
 
@@ -104,6 +107,7 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
             title: "Auto-Cleanup Complete",
             description: `${deletedCount} archived jobs older than 2 months have been deleted.`,
           });
+          forceRefresh();
         }
 
         localStorage.setItem('lastJobCleanupDate', today);
@@ -147,7 +151,7 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
     }
     // Admin sees all jobs based on the status filter
     return query(q, where('status', 'in', visibleStatuses));
-  }, [firestore, user, showOnlyUnclaimed, jobStatus]);
+  }, [firestore, user, showOnlyUnclaimed, jobStatus, refreshKey]);
 
   const { data: jobs, isLoading: isLoadingJobs } = useCollection<Job>(jobsQuery);
 
@@ -187,6 +191,7 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
     updateDocumentNonBlocking(jobRef, updateData);
     createLog(job.id, "Status Update", `Job status changed to ${status}`);
     toast({ title: t('notifications.statusUpdated'), description: `Job #${job.id} is now ${status}` });
+    forceRefresh();
   };
   
    const handleJobCompletion = (jobId: string, rounds: number, kilometers: number) => {
@@ -200,6 +205,7 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
     updateDocumentNonBlocking(jobRef, updateData);
     createLog(jobId, "Job Completed", `Job marked as completed with ${rounds} rounds and ${kilometers} km driven.`);
     toast({ title: t('notifications.statusUpdated'), description: `Job #${jobId} is now Completed` });
+    forceRefresh();
   };
 
 
@@ -209,6 +215,7 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
     updateDocumentNonBlocking(jobRef, { supervisorId: user.id, status: 'Pending' });
     createLog(job.id, "Job Claimed", `Job claimed by supervisor ${user.name}`);
     toast({ title: t('notifications.jobClaimed'), description: `You have claimed Job #${job.id}` });
+    forceRefresh();
   };
   
   const handleOpenAssignment = (job: Job) => {
@@ -252,6 +259,7 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
       title: t('notifications.jobAssigned'), 
       description: `Driver and vehicle assigned to Job #${jobId}` 
     });
+    forceRefresh();
   };
   
   const handleReject = (job: Job) => {
@@ -259,6 +267,7 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
     updateDocumentNonBlocking(jobRef, { status: 'Rejected' });
     createLog(job.id, "Job Rejected", `Job was rejected.`);
     toast({ title: t('notifications.jobRejected'), variant: 'destructive', description: `Job #${job.id}` });
+    forceRefresh();
   }
 
   const handleArchive = (job: Job) => {
@@ -266,6 +275,7 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
     updateDocumentNonBlocking(jobRef, { status: 'Archived', previousStatus: job.status });
     createLog(job.id, "Job Archived", `Job was archived.`);
     toast({ title: 'Job Archived' });
+    forceRefresh();
   };
   
   const handleUnarchive = (job: Job) => {
@@ -275,6 +285,7 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
     updateDocumentNonBlocking(jobRef, { status: restoredStatus, previousStatus: null });
     createLog(job.id, "Job Unarchived", `Job was unarchived.`);
     toast({ title: 'Job Unarchived' });
+    forceRefresh();
   };
   
   const handleDeleteAllArchived = async () => {
@@ -295,6 +306,7 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
         title: "All Archived Jobs Deleted",
         description: `${archivedJobs.length} jobs have been permanently deleted.`
       });
+      forceRefresh();
     } catch (error) {
       console.error("Error deleting all archived jobs:", error);
       toast({
@@ -313,6 +325,7 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
       title: 'Job Deleted Permanently',
       variant: 'destructive'
     });
+    forceRefresh();
   };
 
   const getStatusBadgeVariant = (status: JobStatus) => {
@@ -546,12 +559,14 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
                         <>
                             {job.status === 'Approved' && (
                                 <DropdownMenuItem onClick={() => handleStatusChange(job, 'In Transit')}>
+                                    <Truck className="mr-2 h-4 w-4" />
                                     {t('jobs.startTransit')}
                                 </DropdownMenuItem>
                             )}
                             {job.status === 'In Transit' && (
                                 <DropdownMenuItem onClick={() => handleOpenCompletionModal(job)}>
-                                    {t('jobs.markComplete')}
+                                    <Milestone className="mr-2 h-4 w-4" />
+                                    Enter Details & Complete
                                 </DropdownMenuItem>
                             )}
                         </>
