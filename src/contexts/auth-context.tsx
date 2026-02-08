@@ -1,15 +1,16 @@
+
 "use client";
 
 import React, { createContext, useContext, ReactNode, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { UserRole } from "@/lib/types";
-import { useFirebase, setDocumentNonBlocking, useMemoFirebase } from "@/firebase";
+import { useFirebase, setDocumentNonBlocking, useMemoFirebase, updateDocumentNonBlocking } from "@/firebase";
 import { 
   User as FirebaseUser, 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword
 } from "firebase/auth";
-import { doc, getDoc, Firestore, onSnapshot, collection, getDocs, query, setDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, Firestore, onSnapshot, collection, getDocs, query } from "firebase/firestore";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 
 interface UserProfile {
@@ -33,7 +34,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string, role: UserRole, options?: SignupOptions) => Promise<void>;
   logout: () => void;
-  updateUserProfile: (userId: string, data: Partial<UserProfile>) => Promise<void>;
+  updateUserProfile: (userId: string, data: Partial<UserProfile>) => void;
   isAuthenticated: boolean;
   isUserLoading: boolean;
 }
@@ -55,7 +56,7 @@ const createUserProfile = async (firestore: Firestore, firebaseUser: FirebaseUse
     if (role === 'Driver') {
       newUserProfile.availability = availability ?? false;
     }
-    await setDoc(userRef, newUserProfile, { merge: true });
+    setDocumentNonBlocking(userRef, newUserProfile, { merge: true });
   }
 };
 
@@ -150,10 +151,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push("/login");
   };
 
-  const updateUserProfile = async (userId: string, data: Partial<UserProfile>) => {
+  const updateUserProfile = (userId: string, data: Partial<UserProfile>) => {
     if (!firestore) return;
     const userRef = doc(firestore, "users", userId);
-    await updateDoc(userRef, data);
+    updateDocumentNonBlocking(userRef, data);
   };
 
 

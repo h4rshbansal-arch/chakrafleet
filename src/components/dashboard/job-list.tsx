@@ -288,7 +288,7 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
     forceRefresh();
   };
   
-  const handleDeleteAllArchived = async () => {
+  const handleDeleteAllArchived = () => {
     if (!firestore || !jobs) return;
     const archivedJobs = jobs.filter(j => j.status === 'Archived');
     if (archivedJobs.length === 0) {
@@ -300,21 +300,21 @@ export function JobList({ showOnlyUnclaimed = false, jobStatus }: JobListProps) 
       const jobRef = doc(firestore, 'jobs', job.id);
       batch.delete(jobRef);
     });
-    try {
-      await batch.commit();
+
+    batch.commit().then(() => {
       toast({
         title: "All Archived Jobs Deleted",
         description: `${archivedJobs.length} jobs have been permanently deleted.`
       });
       forceRefresh();
-    } catch (error) {
+    }).catch(error => {
       console.error("Error deleting all archived jobs:", error);
       toast({
         variant: "destructive",
         title: "Error",
         description: "Could not delete archived jobs."
       });
-    }
+    });
   };
 
 

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -37,21 +38,13 @@ export function ProfileDialog({ isOpen, onOpenChange }: ProfileDialogProps) {
     return name.split(' ').map((n) => n[0]).join('');
   };
 
-  const handleSave = async () => {
-    try {
-      await updateUserProfile(user.id, { name });
-      toast({
-        title: "Profile Updated",
-        description: "Your profile has been successfully updated.",
-      });
-      setIsEditing(false);
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Update Failed",
-        description: "Could not update your profile. Please try again.",
-      });
-    }
+  const handleSave = () => {
+    updateUserProfile(user.id, { name });
+    toast({
+      title: "Profile Updated",
+      description: "Your profile has been successfully updated.",
+    });
+    setIsEditing(false);
   };
   
   const handleCancel = () => {

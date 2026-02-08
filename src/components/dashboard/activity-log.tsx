@@ -86,20 +86,19 @@ export function ActivityLog() {
         batch.delete(logDoc.ref);
     });
 
-    try {
-        await batch.commit();
+    batch.commit().then(() => {
         toast({
             title: "Activity Logs Cleared",
             description: `Successfully deleted ${querySnapshot.size} log entries.`
         });
-    } catch (error) {
+    }).catch((error) => {
         console.error("Error clearing activity logs:", error);
         toast({
             variant: "destructive",
             title: "Error",
             description: "Could not clear activity logs."
         });
-    }
+    });
   };
 
   if (isLoadingLogs || isLoadingUsers) {

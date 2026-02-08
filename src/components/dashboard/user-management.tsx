@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -81,7 +82,7 @@ export function UserManagement() {
     }
   }, [users]);
 
-  const handleResetAllDrivers = async () => {
+  const handleResetAllDrivers = () => {
     if (!firestore || !users) return;
     const batch = writeBatch(firestore);
     const drivers = users.filter(user => user.role === 'Driver');
@@ -91,20 +92,19 @@ export function UserManagement() {
       batch.update(userRef, { availability: true });
     });
 
-    try {
-      await batch.commit();
+    batch.commit().then(() => {
       toast({
         title: "Drivers Availability Reset",
         description: "All drivers have been marked as available for the day.",
       });
-    } catch (error) {
+    }).catch(error => {
       console.error("Error resetting driver availability:", error);
       toast({
         variant: "destructive",
         title: "Error",
         description: "Could not reset driver availability.",
       });
-    }
+    });
   };
 
   const getInitials = (name: string) => {
